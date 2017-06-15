@@ -1,0 +1,13 @@
+{
+    "ListenAddress": "",
+    "JenkinsURL": "",
+    "JenkinsUsername": "",
+    "JenkinsPassword": "",
+    "AllowedTokens": [],
+    "AllowedUsers": [],
+    "CIServerJobs": [
+    ],
+    "ReleaseJob": "",
+    "PreChecksJob": "",
+    "PreReleaseJob": ""
+}

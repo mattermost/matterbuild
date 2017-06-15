@@ -1,0 +1,8 @@
+package: github.com/mattermost/matterbuild
+import:
+- package: github.com/julienschmidt/httprouter
+  version: v1.1
+- package: github.com/gorilla/schema
+- package: github.com/spf13/cobra
+- package: github.com/bndr/gojenkins
+- package: github.com/beevik/etree
