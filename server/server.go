@@ -158,10 +158,12 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	command, err := ParseSlashCommand(r)
 	if err != nil {
 		WriteErrorResponse(w, NewError("Unable to parse incoming slash command info", err))
+		return
 	}
 
 	if err := checkSlashPermissions(command); err != nil {
 		WriteErrorResponse(w, err)
+		return
 	}
 
 	// Output Buffer
