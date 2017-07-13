@@ -217,10 +217,19 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
+	var loadtestKubeCmd = &cobra.Command{
+		Use:   "loadtest [buildtag]",
+		Short: "Create a kubernetes cluster to loadtest a branch or pr.",
+		Long:  "Creates a kubernetes cluster to loadtest a branch or pr. buildtag must be a branch name or pr-0000 where 0000 is the PR number in github. Note that the branch or PR must have built before this command can be run.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return loadtestKubeF(args, w, command)
+		},
+	}
+
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
 
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd)
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, loadtestKubeCmd)
 
 	rootCmd.Execute()
 
@@ -343,5 +352,18 @@ func setPreReleaseCmdF(args []string, w http.ResponseWriter, slashCommand *MMSla
 	}
 
 	WriteResponse(w, "Set pre-release to "+args[0])
+	return nil
+}
+
+func loadtestKubeF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
+	if len(args) < 1 {
+		return NewError("You need to specify a build tag. A branch or pr-0000.", nil)
+	}
+
+	if err := LoadtestKube(args[0]); err != nil {
+		return err
+	}
+
+	WriteResponse(w, "Loadtesting: "+args[0])
 	return nil
 }
