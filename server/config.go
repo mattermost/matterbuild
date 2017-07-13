@@ -24,6 +24,8 @@ type MatterbuildConfig struct {
 	PreChecksJob string
 
 	PreReleaseJob string
+
+	KubeDeployJob string
 }
 
 var Cfg *MatterbuildConfig = &MatterbuildConfig{}
