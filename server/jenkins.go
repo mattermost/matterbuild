@@ -246,7 +246,13 @@ func SetPreReleaseTarget(target string) *AppError {
 	return nil
 }
 
-func LoadtestKube(buildTag string) *AppError {
-	RunJobParameters(Cfg.KubeDeployJob, map[string]string{"BUILD_TAG": buildTag, "KUBE_BRANCH": "add-loadtests"})
+func LoadtestKube(buildTag string, length int, delay int) *AppError {
+	RunJobParameters(Cfg.KubeDeployJob, map[string]string{
+		"BUILD_TAG":           buildTag,
+		"KUBE_BRANCH":         "master",
+		"KUBE_CONFIG_FILE":    "values_loadtest.yaml",
+		"TEST_LENGTH_MINUTES": strconv.Itoa(length),
+		"PPROF_DELAY":         strconv.Itoa(delay),
+	})
 	return nil
 }

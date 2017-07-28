@@ -151,6 +151,20 @@ func checkSlashPermissions(command *MMSlashCommand) *AppError {
 		return NewError("You don't have permissions to use this command.", nil)
 	}
 
+	if command.Command == "cut" {
+		hasPremissions = false
+		for _, allowedUser := range Cfg.ReleaseUsers {
+			if allowedUser == command.UserId {
+				hasPremissions = true
+				break
+			}
+		}
+
+		if !hasPremissions {
+			return NewError("You don't have permissions to use this command.", nil)
+		}
+	}
+
 	return nil
 }
 
@@ -222,9 +236,22 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		Short: "Create a kubernetes cluster to loadtest a branch or pr.",
 		Long:  "Creates a kubernetes cluster to loadtest a branch or pr. buildtag must be a branch name or pr-0000 where 0000 is the PR number in github. Note that the branch or PR must have built before this command can be run.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return loadtestKubeF(args, w, command)
+			length, err := cmd.Flags().GetInt("length")
+			if err != nil {
+				length = 20
+			}
+
+			delay, err := cmd.Flags().GetInt("delay")
+			if err != nil {
+				delay = 20
+			}
+
+			return loadtestKubeF(args, w, command, length, delay)
 		},
 	}
+
+	loadtestKubeCmd.Flags().IntP("length", "l", 20, "How long to run the load test for in minutes.")
+	loadtestKubeCmd.Flags().IntP("delay", "d", 15, "How long to delay before running the pprof.")
 
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
@@ -355,12 +382,12 @@ func setPreReleaseCmdF(args []string, w http.ResponseWriter, slashCommand *MMSla
 	return nil
 }
 
-func loadtestKubeF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
+func loadtestKubeF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, testLength int, pprofDelay int) error {
 	if len(args) < 1 {
 		return NewError("You need to specify a build tag. A branch or pr-0000.", nil)
 	}
 
-	if err := LoadtestKube(args[0]); err != nil {
+	if err := LoadtestKube(args[0], testLength, pprofDelay); err != nil {
 		return err
 	}
 
