@@ -17,6 +17,7 @@ type MatterbuildConfig struct {
 
 	AllowedTokens []string
 	AllowedUsers  []string
+	ReleaseUsers  []string
 
 	CIServerJobs []string
 

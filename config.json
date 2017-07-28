@@ -5,6 +5,7 @@
     "JenkinsPassword": "",
     "AllowedTokens": [],
     "AllowedUsers": [],
+    "ReleaseUsers": [],
     "CIServerJobs": [
     ],
     "ReleaseJob": "",
