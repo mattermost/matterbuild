@@ -17,6 +17,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	IN_CHANNEL = "in_channel"
+	EPHEMERAL  = "ephemeral"
+)
+
 type MMSlashCommand struct {
 	ChannelId   string `schema:"channel_id"`
 	ChannelName string `schema:"channel_name"`
@@ -69,9 +74,9 @@ func Info(info string) {
 	fmt.Println("[INFO] " + info)
 }
 
-func GenerateStandardSlashResponse(text string) string {
+func GenerateStandardSlashResponse(text string, respType string) string {
 	response := MMSlashResponse{
-		ResponseType: "in_channel",
+		ResponseType: respType,
 		Text:         text,
 		GotoLocation: "",
 		Username:     "Matterbuild",
@@ -88,11 +93,11 @@ func GenerateStandardSlashResponse(text string) string {
 }
 
 func WriteErrorResponse(w http.ResponseWriter, err *AppError) {
-	w.Write([]byte(GenerateStandardSlashResponse(err.Error())))
+	w.Write([]byte(GenerateStandardSlashResponse(err.Error(), EPHEMERAL)))
 }
 
-func WriteResponse(w http.ResponseWriter, resp string) {
-	w.Write([]byte(GenerateStandardSlashResponse(resp)))
+func WriteResponse(w http.ResponseWriter, resp string, style string) {
+	w.Write([]byte(GenerateStandardSlashResponse(resp, style)))
 }
 
 func ParseSlashCommand(r *http.Request) (*MMSlashCommand, error) {
@@ -260,7 +265,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 
 	rootCmd.Execute()
 
-	WriteResponse(w, outBuf.String())
+	WriteResponse(w, outBuf.String(), EPHEMERAL)
 }
 
 var finalVersionRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+$")
@@ -324,7 +329,7 @@ func curReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 	if err := CutRelease(releasePart, rcPart, isFirstMinorRelease, backport); err != nil {
 		WriteErrorResponse(w, err)
 	} else {
-		WriteResponse(w, "Release "+args[0]+" is on the way.")
+		WriteResponse(w, "Release "+args[0]+" is on the way.", IN_CHANNEL)
 	}
 	return nil
 }
@@ -339,7 +344,7 @@ func configDumpCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		return err
 	}
 
-	WriteResponse(w, config)
+	WriteResponse(w, config, IN_CHANNEL)
 	return nil
 }
 
@@ -352,7 +357,7 @@ func setCIBranchCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlash
 		return err
 	}
 
-	WriteResponse(w, "CI servers now pointed at "+args[0])
+	WriteResponse(w, "CI servers now pointed at "+args[0], IN_CHANNEL)
 	return nil
 }
 
@@ -365,7 +370,7 @@ func runJobCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlashComma
 		return err
 	}
 
-	WriteResponse(w, "Ran job "+args[0])
+	WriteResponse(w, "Ran job "+args[0], IN_CHANNEL)
 	return nil
 }
 
@@ -378,7 +383,7 @@ func setPreReleaseCmdF(args []string, w http.ResponseWriter, slashCommand *MMSla
 		return err
 	}
 
-	WriteResponse(w, "Set pre-release to "+args[0])
+	WriteResponse(w, "Set pre-release to "+args[0], IN_CHANNEL)
 	return nil
 }
 
@@ -391,6 +396,6 @@ func loadtestKubeF(args []string, w http.ResponseWriter, slashCommand *MMSlashCo
 		return err
 	}
 
-	WriteResponse(w, "Loadtesting: "+args[0])
+	WriteResponse(w, "Loadtesting: "+args[0], IN_CHANNEL)
 	return nil
 }
