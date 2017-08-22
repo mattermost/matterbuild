@@ -93,10 +93,14 @@ func GenerateStandardSlashResponse(text string, respType string) string {
 }
 
 func WriteErrorResponse(w http.ResponseWriter, err *AppError) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(GenerateStandardSlashResponse(err.Error(), EPHEMERAL)))
 }
 
 func WriteResponse(w http.ResponseWriter, resp string, style string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(GenerateStandardSlashResponse(resp, style)))
 }
 
