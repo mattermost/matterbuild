@@ -137,9 +137,9 @@ func SetCIServerBranch(branch string) *AppError {
 				return NewError("Unable to correct build trigger element for "+serverjob, nil)
 			}
 			if branch == "master" {
-				element2.SetText("mattermost-enterprise")
+				element2.SetText("../mme/mattermost-enterprise")
 			} else {
-				element2.SetText("mattermost-platform/" + branch)
+				element2.SetText("../mp/mattermost-platform/" + branch)
 			}
 
 			jConfigStringOut, err := jConfig.WriteToString()
