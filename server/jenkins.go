@@ -41,7 +41,7 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 	}
 
 	// We want to return so the user knows the build has started.
-	// Build jobs shoudl report their own failure.
+	// Build jobs should report their own failure.
 	go func() {
 		if result, err := RunJobWaitForResult(
 			Cfg.ReleaseJob,
@@ -57,7 +57,8 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		if !backportRelease {
 			SetCIServerBranch(releaseBranch)
 
-			RunJobParameters("build-pushes/job/release-gitlab.mattermost.com", map[string]string{"MM_VERSION": fullRelease})
+			//Deploy to OSS Server
+			RunJobParameters(Cfg.OSSServerJob, map[string]string{"MM_VERSION": fullRelease})
 
 			SetPreReleaseTarget(fullRelease)
 			RunJob(Cfg.PreReleaseJob)
@@ -69,6 +70,7 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 
 func RunReleasePrechecks() *AppError {
 	if result, err := RunJobWaitForResult(Cfg.PreChecksJob, nil); err != nil || result != gojenkins.STATUS_SUCCESS {
+		LogError("[RunReleasePrechecks] Pre-checks failed! (Did you update the database upgrade code?) Result: "+result, err)
 		return NewError("Pre-checks failed! (Did you update the database upgrade code?) Result: "+result, err)
 	}
 
@@ -77,11 +79,14 @@ func RunReleasePrechecks() *AppError {
 
 func getJob(name string) (*gojenkins.Job, *AppError) {
 	jenkins, err := getJenkins()
+
 	if err != nil {
+		LogError("[getJob] Unable to get Jenkins ", err)
 		return nil, err
 	}
 
 	if job, err := jenkins.GetJob(name); err != nil {
+		LogError("[getJob] Unable to get job: " + name + " err=" + err.Error())
 		return nil, NewError("Unable to get job", err)
 	} else {
 		return job, nil
@@ -91,9 +96,11 @@ func getJob(name string) (*gojenkins.Job, *AppError) {
 
 func GetJobConfig(name string) (string, *AppError) {
 	if job, err := getJob(name); err != nil {
+		LogError("[GetJobConfig] Unable to get the Job: " + name + " err=" + err.Error())
 		return "", err
 	} else {
 		if config, err := job.GetConfig(); err != nil {
+			LogError("[GetJobConfig] Unable to get job config for job: " + name + " err=" + err.Error())
 			return "", NewError("Unable to get job config", err)
 		} else {
 			return config, nil
@@ -103,10 +110,12 @@ func GetJobConfig(name string) (string, *AppError) {
 
 func SaveJobConfig(name string, config string) *AppError {
 	if job, err := getJob(name); err != nil {
+		LogError("[SaveJobConfig] Unable to save job config for job: " + name + " err=" + err.Error())
 		return err
 	} else {
 		err2 := job.UpdateConfig(config)
 		if err2 != nil {
+			LogError("[SaveJobConfig] Unable to update job config for job: " + name + " err=" + err.Error())
 			return NewError("Unable to update job config", err)
 		}
 	}
@@ -121,12 +130,14 @@ func SetCIServerBranch(branch string) *AppError {
 		} else {
 			jConfig := etree.NewDocument()
 			if err := jConfig.ReadFromString(config); err != nil {
+				LogError("[SetCIServerBranch] Unable to read job configuration for " + serverjob + " err=" + err.Error())
 				return NewError("Unable to read job configuration for "+serverjob, err)
 			}
 
 			// Change branch to build from
 			element := jConfig.Root().FindElement("./properties/hudson.model.ParametersDefinitionProperty/parameterDefinitions/hudson.model.StringParameterDefinition/defaultValue")
 			if element == nil {
+				LogError("[SetCIServerBranch] Unable to correct default branch element for " + serverjob)
 				return NewError("Unable to correct default branch element for "+serverjob, nil)
 			}
 			element.SetText(branch)
@@ -144,10 +155,12 @@ func SetCIServerBranch(branch string) *AppError {
 
 			jConfigStringOut, err := jConfig.WriteToString()
 			if err != nil {
+				LogError("[SetCIServerBranch] Unable to write out final job config for " + serverjob + " err=" + err.Error())
 				return NewError("Unable to write out final job config for "+serverjob, err)
 			}
 
 			if err := SaveJobConfig(serverjob, jConfigStringOut); err != nil {
+				LogError("[SetCIServerBranch] Unable to save job for " + serverjob + " err=" + err.Error())
 				return NewError("Unable to save job for "+serverjob, err)
 			}
 		}
@@ -157,12 +170,14 @@ func SetCIServerBranch(branch string) *AppError {
 }
 
 func RunJob(name string) *AppError {
+	LogInfo("Running Job: " + name)
 	return RunJobParameters(name, nil)
 }
 
 func RunJobWaitForResult(name string, parameters map[string]string) (string, *AppError) {
 	job, err := getJob(name)
 	if err != nil {
+		LogError("[RunJobWaitForResult] Did not find Job: " + name + " err=" + err.Error())
 		return "", err
 	}
 
@@ -170,6 +185,7 @@ func RunJobWaitForResult(name string, parameters map[string]string) (string, *Ap
 
 	_, err2 := job.InvokeSimple(parameters)
 	if err2 != nil {
+		LogError("[RunJobWaitForResult] Unable to envoke job " + " err=" + err.Error())
 		return "", NewError("Unable to envoke job.", err)
 	}
 
@@ -188,6 +204,7 @@ func RunJobWaitForResult(name string, parameters map[string]string) (string, *Ap
 	for ; err3 != nil || status != 200; tries += 1 {
 		status, err3 = build.Poll()
 		if tries >= 5 {
+			LogError("[RunJobWaitForResult] Unable to get build for pre-checks job: " + strconv.Itoa(int(newBuildNumber)) + " err=" + err3.Error())
 			return "", NewError("Unable to get build for pre-checks job: "+strconv.Itoa(int(newBuildNumber)), err3)
 		}
 		time.Sleep(time.Second * time.Duration(tries))
@@ -197,6 +214,7 @@ func RunJobWaitForResult(name string, parameters map[string]string) (string, *Ap
 	time.Sleep(time.Second * 5)
 	build.Poll()
 	for build.IsRunning() {
+		LogInfo("[RunJobWaitForResult] Waiting for job: " + name + " to complete")
 		time.Sleep(time.Second)
 		build.Poll()
 	}
@@ -210,6 +228,7 @@ func RunJobParameters(name string, parameters map[string]string) *AppError {
 	} else {
 		_, err2 := job.InvokeSimple(parameters)
 		if err2 != nil {
+			LogError("[RunJobParameters] Unable to envoke job. err=" + err.Error())
 			return NewError("Unable to envoke job.", err)
 		}
 	}
@@ -223,6 +242,7 @@ func SetPreReleaseTarget(target string) *AppError {
 	} else {
 		jConfig := etree.NewDocument()
 		if err := jConfig.ReadFromString(config); err != nil {
+			LogError("[SetPreReleaseTarget] Unable to read job configuration for pre-release. err=", err.Error())
 			return NewError("Unable to read job configuration for pre-release", err)
 		}
 
@@ -235,10 +255,12 @@ func SetPreReleaseTarget(target string) *AppError {
 
 		jConfigStringOut, err := jConfig.WriteToString()
 		if err != nil {
+			LogError("[SetPreReleaseTarget] Unable to write out final job config for pre-release job. err=" + err.Error())
 			return NewError("Unable to write out final job config for pre-release job", err)
 		}
 
 		if err := SaveJobConfig(Cfg.PreReleaseJob, jConfigStringOut); err != nil {
+			LogError("[SetPreReleaseTarget] Unable to save job for pre-release. err=" + err.Error())
 			return NewError("Unable to save job for pre-release", err)
 		}
 	}

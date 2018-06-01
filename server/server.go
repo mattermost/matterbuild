@@ -85,10 +85,9 @@ func GenerateStandardSlashResponse(text string, respType string) string {
 
 	b, err := json.Marshal(response)
 	if err != nil {
-		Error("Unable to marshal response")
+		LogError("Unable to marshal response")
 		return ""
 	}
-
 	return string(b)
 }
 
@@ -123,12 +122,15 @@ func ParseSlashCommand(r *http.Request) (*MMSlashCommand, error) {
 
 func Start() {
 	LoadConfig("config.json")
+	LogInfo("Starting Matterbuild")
 
 	router := httprouter.New()
 	router.GET("/", indexHandler)
 	router.POST("/slash_command", slashCommandHandler)
 
+	LogInfo("Running Matterbuild on port " + Cfg.ListenAddress)
 	http.ListenAndServe(Cfg.ListenAddress, router)
+
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -267,9 +269,12 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 
 	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, loadtestKubeCmd)
 
-	rootCmd.Execute()
+	err = rootCmd.Execute()
 
-	WriteResponse(w, outBuf.String(), EPHEMERAL)
+	if err != nil || len(outBuf.String()) > 0 {
+		WriteResponse(w, outBuf.String(), EPHEMERAL)
+	}
+	return
 }
 
 var finalVersionRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+$")
@@ -340,7 +345,7 @@ func curReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 
 func configDumpCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
 	if len(args) < 1 {
-		return NewError("You need to supply an argment", nil)
+		return NewError("You need to supply an argument", nil)
 	}
 
 	config, err := GetJobConfig(args[0])
