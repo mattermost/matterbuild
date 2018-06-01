@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package server
@@ -45,16 +45,16 @@ func FindConfigFile(fileName string) string {
 
 func LoadConfig(fileName string) {
 	fileName = FindConfigFile(fileName)
-	Info("Loading " + fileName)
+	LogInfo("Loading " + fileName)
 
 	file, err := os.Open(fileName)
 	if err != nil {
-		Error("Error opening config file=" + fileName + ", err=" + err.Error())
+		LogError("Error opening config file=" + fileName + ", err=" + err.Error())
 	}
 
 	decoder := json.NewDecoder(file)
 	err = decoder.Decode(Cfg)
 	if err != nil {
-		Error("Error decoding config file=" + fileName + ", err=" + err.Error())
+		LogError("Error decoding config file=" + fileName + ", err=" + err.Error())
 	}
 }
