@@ -23,6 +23,7 @@ type MatterbuildConfig struct {
 
 	ReleaseJob   string
 	PreChecksJob string
+	OSSServerJob string
 
 	PreReleaseJob string
 
