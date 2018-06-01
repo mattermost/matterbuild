@@ -353,7 +353,7 @@ func configDumpCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		return err
 	}
 
-	LogInfo("Config Dump sent...")
+	LogInfo("Config Dump sent... dump=" + config)
 
 	WriteResponse(w, config, IN_CHANNEL)
 	return nil
