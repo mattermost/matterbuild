@@ -24,15 +24,6 @@
 #   go-tests = true
 #   unused-packages = true
 
-
-[[constraint]]
-  branch = "master"
-  name = "github.com/alecthomas/log4go"
-
-[[constraint]]
-  name = "github.com/julienschmidt/httprouter"
-  version = "1.1.0"
-
 [prune]
   go-tests = true
   unused-packages = true

@@ -57,7 +57,8 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		if !backportRelease {
 			SetCIServerBranch(releaseBranch)
 
-			RunJobParameters("build-pushes/job/release-gitlab.mattermost.com", map[string]string{"MM_VERSION": fullRelease})
+			//Deploy to OSS Server
+			RunJobParameters(Cfg.OSSServerJob, map[string]string{"MM_VERSION": fullRelease})
 
 			SetPreReleaseTarget(fullRelease)
 			RunJob(Cfg.PreReleaseJob)
