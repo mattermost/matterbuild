@@ -353,6 +353,8 @@ func configDumpCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		return err
 	}
 
+	LogInfo("Config Dump sent...")
+
 	WriteResponse(w, config, IN_CHANNEL)
 	return nil
 }
@@ -366,6 +368,7 @@ func setCIBranchCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlash
 		return err
 	}
 
+	LogInfo("CI servers now pointed at " + args[0])
 	WriteResponse(w, "CI servers now pointed at "+args[0], IN_CHANNEL)
 	return nil
 }
