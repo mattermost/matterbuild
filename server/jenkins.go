@@ -5,6 +5,7 @@ package server
 
 import (
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/beevik/etree"
@@ -128,6 +129,8 @@ func SetCIServerBranch(branch string) *AppError {
 		if config, err := GetJobConfig(serverjob); err != nil {
 			return err
 		} else {
+			config = strings.Replace(config, "version='1.1'", "version='1.0'", 1)
+			config = strings.Replace(config, "version=\"1.1\"", "version=\"1.0\"", 1)
 			jConfig := etree.NewDocument()
 			if err := jConfig.ReadFromString(config); err != nil {
 				LogError("[SetCIServerBranch] Unable to read job configuration for " + serverjob + " err=" + err.Error())
@@ -154,6 +157,7 @@ func SetCIServerBranch(branch string) *AppError {
 			}
 
 			jConfigStringOut, err := jConfig.WriteToString()
+			jConfigStringOut = strings.Replace(jConfigStringOut, "version=\"1.0\"", "version=\"1.1\"", 1)
 			if err != nil {
 				LogError("[SetCIServerBranch] Unable to write out final job config for " + serverjob + " err=" + err.Error())
 				return NewError("Unable to write out final job config for "+serverjob, err)
@@ -240,6 +244,8 @@ func SetPreReleaseTarget(target string) *AppError {
 	if config, err := GetJobConfig(Cfg.PreReleaseJob); err != nil {
 		return err
 	} else {
+		config = strings.Replace(config, "version='1.1'", "version='1.0'", 1)
+		config = strings.Replace(config, "version=\"1.1\"", "version=\"1.0\"", 1)
 		jConfig := etree.NewDocument()
 		if err := jConfig.ReadFromString(config); err != nil {
 			LogError("[SetPreReleaseTarget] Unable to read job configuration for pre-release. err=", err.Error())
@@ -259,6 +265,7 @@ func SetPreReleaseTarget(target string) *AppError {
 			return NewError("Unable to write out final job config for pre-release job", err)
 		}
 
+		jConfigStringOut = strings.Replace(jConfigStringOut, "version=\"1.0\"", "version=\"1.1\"", 1)
 		if err := SaveJobConfig(Cfg.PreReleaseJob, jConfigStringOut); err != nil {
 			LogError("[SetPreReleaseTarget] Unable to save job for pre-release. err=" + err.Error())
 			return NewError("Unable to save job for pre-release", err)
