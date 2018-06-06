@@ -148,7 +148,10 @@ func SetCIServerBranch(branch string) *AppError {
 			// Change build trigger
 			element2 := jConfig.Root().FindElement("./triggers/jenkins.triggers.ReverseBuildTrigger/upstreamProjects")
 			if element2 == nil {
-				return NewError("Unable to correct build trigger element for "+serverjob, nil)
+				element2 := jConfig.Root().FindElement("./properties/org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty/triggers/jenkins.triggers.ReverseBuildTrigger/upstreamProjects")
+				if element2 == nil {
+					return NewError("Unable to correct build trigger element for "+serverjob, nil)
+				}
 			}
 			if branch == "master" {
 				element2.SetText("../mme/mattermost-enterprise")
