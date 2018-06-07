@@ -20,7 +20,7 @@ func getJenkins() (*gojenkins.Jenkins, *AppError) {
 	return jenkins, nil
 }
 
-func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRelease bool) *AppError {
+func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRelease bool, isDryRun bool) *AppError {
 	shortRelease := release[:len(release)-2]
 	releaseBranch := "release-" + shortRelease
 	fullRelease := release + "-" + rc
@@ -37,6 +37,11 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		isFirstMinorReleaseStr = "true"
 	}
 
+	isDryRunStr := "false"
+	if isDryRun {
+		isDryRunStr = "true"
+	}
+
 	if err := RunReleasePrechecks(); err != nil {
 		return err
 	}
@@ -50,6 +55,7 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 				"MM_VERSION":             release,
 				"MM_RC":                  rcpart,
 				"IS_FIRST_MINOR_RELEASE": isFirstMinorReleaseStr,
+				"IS_DRY_RUN":             isDryRunStr,
 			}); err != nil || result != gojenkins.STATUS_SUCCESS {
 			return
 		}
