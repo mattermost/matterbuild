@@ -365,6 +365,7 @@ func setCIBranchCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlash
 	}
 
 	if err := SetCIServerBranch(args[0]); err != nil {
+		LogError("Error when setting the branch. err= " + err.Error())
 		return err
 	}
 

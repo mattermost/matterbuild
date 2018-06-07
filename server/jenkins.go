@@ -126,7 +126,9 @@ func SaveJobConfig(name string, config string) *AppError {
 
 func SetCIServerBranch(branch string) *AppError {
 	for _, serverjob := range Cfg.CIServerJobs {
+		LogInfo("[SetCIServerBranch] Setting branch " + branch + " to " + serverjob)
 		if config, err := GetJobConfig(serverjob); err != nil {
+			LogError("[SetCIServerBranch] Error getting the job config for" + serverjob + " err=" + err.Error())
 			return err
 		} else {
 			config = strings.Replace(config, "version='1.1'", "version='1.0'", 1)
@@ -148,7 +150,7 @@ func SetCIServerBranch(branch string) *AppError {
 			// Change build trigger
 			element2 := jConfig.Root().FindElement("./triggers/jenkins.triggers.ReverseBuildTrigger/upstreamProjects")
 			if element2 == nil {
-				element2 := jConfig.Root().FindElement("./properties/org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty/triggers/jenkins.triggers.ReverseBuildTrigger/upstreamProjects")
+				element2 = jConfig.Root().FindElement("./properties/org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty/triggers/jenkins.triggers.ReverseBuildTrigger/upstreamProjects")
 				if element2 == nil {
 					return NewError("Unable to correct build trigger element for "+serverjob, nil)
 				}
@@ -160,12 +162,12 @@ func SetCIServerBranch(branch string) *AppError {
 			}
 
 			jConfigStringOut, err := jConfig.WriteToString()
-			jConfigStringOut = strings.Replace(jConfigStringOut, "version=\"1.0\"", "version=\"1.1\"", 1)
 			if err != nil {
 				LogError("[SetCIServerBranch] Unable to write out final job config for " + serverjob + " err=" + err.Error())
 				return NewError("Unable to write out final job config for "+serverjob, err)
 			}
 
+			jConfigStringOut = strings.Replace(jConfigStringOut, "version=\"1.0\"", "version=\"1.1\"", 1)
 			if err := SaveJobConfig(serverjob, jConfigStringOut); err != nil {
 				LogError("[SetCIServerBranch] Unable to save job for " + serverjob + " err=" + err.Error())
 				return NewError("Unable to save job for "+serverjob, err)
