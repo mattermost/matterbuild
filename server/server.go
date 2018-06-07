@@ -205,7 +205,8 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		Long:  "Cut a release of Mattermost. Version should be specified in the format 0.0.0-rc0 or 0.0.0 for final releases.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			backport, _ := cmd.Flags().GetBool("backport")
-			return curReleaseCommandF(args, w, command, backport)
+			dryrun, _ := cmd.Flags().GetBool("dryrun")
+			return curReleaseCommandF(args, w, command, backport, dryrun)
 		},
 	}
 	cutCmd.Flags().Bool("backport", false, "Set this flag for releases that are not on the current major release branch.")
@@ -280,7 +281,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 var finalVersionRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+$")
 var rcRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+-rc[0-9]+$")
 
-func curReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, backport bool) error {
+func curReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, backport bool, dryrun bool) error {
 	if len(args) < 1 {
 		return NewError("You need to specifiy a release version.", nil)
 	}
@@ -335,7 +336,7 @@ func curReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		}
 	}
 
-	if err := CutRelease(releasePart, rcPart, isFirstMinorRelease, backport); err != nil {
+	if err := CutRelease(releasePart, rcPart, isFirstMinorRelease, backport, dryrun); err != nil {
 		WriteErrorResponse(w, err)
 	} else {
 		WriteResponse(w, "Release "+args[0]+" is on the way.", IN_CHANNEL)
