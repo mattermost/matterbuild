@@ -210,6 +210,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 	cutCmd.Flags().Bool("backport", false, "Set this flag for releases that are not on the current major release branch.")
+	cutCmd.Flags().Bool("dryrun", false, "Set this flag for testing the release build without pushing tags or artifacts.")
 
 	var configDumpCmd = &cobra.Command{
 		Use:   "seeconf",
