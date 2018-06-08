@@ -12,5 +12,6 @@
     "PreChecksJob": "",
     "PreReleaseJob": "",
     "OSSServerJob": "",
+    "RCTestingJob": "",
     "KubeDeployJob": ""
 }

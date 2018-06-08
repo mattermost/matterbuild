@@ -57,6 +57,11 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 				"IS_FIRST_MINOR_RELEASE": isFirstMinorReleaseStr,
 				"IS_DRY_RUN":             isDryRunStr,
 			}); err != nil || result != gojenkins.STATUS_SUCCESS {
+			// If Release was success trigger the Rctesting job to update
+			RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease})
+			return
+		} else {
+			LogError("Release Job failed. Version=" + fullRelease)
 			return
 		}
 
