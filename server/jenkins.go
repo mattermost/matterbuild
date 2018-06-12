@@ -1,4 +1,4 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package server
@@ -11,6 +11,12 @@ import (
 	"github.com/beevik/etree"
 	"github.com/bndr/gojenkins"
 )
+
+type JenkinsStatus struct {
+	Status   string
+	Duration int64
+	Color    string
+}
 
 func getJenkins() (*gojenkins.Jenkins, *AppError) {
 	jenkins, err := gojenkins.CreateJenkins(Cfg.JenkinsURL, Cfg.JenkinsUsername, Cfg.JenkinsPassword).Init()
@@ -49,19 +55,22 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 	// We want to return so the user knows the build has started.
 	// Build jobs should report their own failure.
 	go func() {
-		if result, err := RunJobWaitForResult(
+		result, err := RunJobWaitForResult(
 			Cfg.ReleaseJob,
 			map[string]string{
 				"MM_VERSION":             release,
 				"MM_RC":                  rcpart,
 				"IS_FIRST_MINOR_RELEASE": isFirstMinorReleaseStr,
 				"IS_DRY_RUN":             isDryRunStr,
-			}); err != nil || result != gojenkins.STATUS_SUCCESS {
-			// If Release was success trigger the Rctesting job to update
-			RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease})
+			})
+		if err != nil || result != gojenkins.STATUS_SUCCESS {
+			LogError("Release Job failed. Version=" + fullRelease + " err= " + err.Error() + " Jenkins result= " + result)
 			return
 		} else {
-			LogError("Release Job failed. Version=" + fullRelease)
+			// If Release was success trigger the Rctesting job to update
+			LogInfo("Release Job Status: " + result)
+			LogInfo("Will trigger Job: " + Cfg.RCTestingJob)
+			RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease})
 			return
 		}
 
@@ -235,7 +244,7 @@ func RunJobWaitForResult(name string, parameters map[string]string) (string, *Ap
 	build.Poll()
 	for build.IsRunning() {
 		LogInfo("[RunJobWaitForResult] Waiting for job: " + name + " to complete")
-		time.Sleep(time.Second)
+		time.Sleep(time.Second * 10)
 		build.Poll()
 	}
 
@@ -300,4 +309,35 @@ func LoadtestKube(buildTag string, length int, delay int) *AppError {
 		"PPROF_DELAY":         strconv.Itoa(delay),
 	})
 	return nil
+}
+
+func GetLatestResult(name string) (*JenkinsStatus, *AppError) {
+	buildStatus := &JenkinsStatus{}
+	job, err := getJob(name)
+	if err != nil {
+		LogError("[GetLatestResult] Did not find Job: " + name + " err=" + err.Error())
+		return nil, err
+	}
+
+	build, err1 := job.GetLastBuild()
+	if err1 != nil {
+		LogError("[GetLatestResult] Error getting the last build for: " + name + " err=" + err1.Error())
+		return nil, NewError("Unable to get last build", err1)
+	}
+
+	if build.IsRunning() {
+		buildStatus.Status = "Running"
+		buildStatus.Duration = 0
+		buildStatus.Color = "#0060aa"
+	} else {
+		buildStatus.Duration = build.GetDuration()
+		buildStatus.Status = build.GetResult()
+		if buildStatus.Status == gojenkins.STATUS_SUCCESS {
+			buildStatus.Color = "#86c323"
+		} else {
+			buildStatus.Color = "#e20025"
+		}
+	}
+
+	return buildStatus, nil
 }
