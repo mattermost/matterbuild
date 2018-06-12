@@ -1,11 +1,10 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 package server
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -15,6 +14,8 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/cobra"
+
+	"github.com/mattermost/matterbuild/utils"
 )
 
 const (
@@ -32,14 +33,6 @@ type MMSlashCommand struct {
 	Token       string `schema:"token"`
 	UserId      string `schema:"user_id"`
 	Username    string `schema:"user_name"`
-}
-
-type MMSlashResponse struct {
-	ResponseType string `json:"response_type"`
-	Text         string `json:"text"`
-	GotoLocation string `json:"goto_location"`
-	Username     string `json:"username"`
-	IconURL      string `json:"icon_url"`
 }
 
 type AppError struct {
@@ -74,23 +67,6 @@ func Info(info string) {
 	fmt.Println("[INFO] " + info)
 }
 
-func GenerateStandardSlashResponse(text string, respType string) string {
-	response := MMSlashResponse{
-		ResponseType: respType,
-		Text:         text,
-		GotoLocation: "",
-		Username:     "Matterbuild",
-		IconURL:      "https://www.mattermost.org/wp-content/uploads/2016/04/icon.png",
-	}
-
-	b, err := json.Marshal(response)
-	if err != nil {
-		LogError("Unable to marshal response")
-		return ""
-	}
-	return string(b)
-}
-
 func WriteErrorResponse(w http.ResponseWriter, err *AppError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -101,6 +77,12 @@ func WriteResponse(w http.ResponseWriter, resp string, style string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(GenerateStandardSlashResponse(resp, style)))
+}
+
+func WriteEnrichedResponse(w http.ResponseWriter, title, resp, color, style string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(GenerateEnrichedSlashResponse(title, resp, color, style)))
 }
 
 func ParseSlashCommand(r *http.Request) (*MMSlashCommand, error) {
@@ -206,7 +188,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		RunE: func(cmd *cobra.Command, args []string) error {
 			backport, _ := cmd.Flags().GetBool("backport")
 			dryrun, _ := cmd.Flags().GetBool("dryrun")
-			return curReleaseCommandF(args, w, command, backport, dryrun)
+			return cutReleaseCommandF(args, w, command, backport, dryrun)
 		},
 	}
 	cutCmd.Flags().Bool("backport", false, "Set this flag for releases that are not on the current major release branch.")
@@ -244,6 +226,14 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
+	var checkCutReleaseStatusCmd = &cobra.Command{
+		Use:   "cutstatus",
+		Short: "Check the status of the Cut Release Job",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return checkCutReleaseStatusF(args, w, command)
+		},
+	}
+
 	var loadtestKubeCmd = &cobra.Command{
 		Use:   "loadtest [buildtag]",
 		Short: "Create a kubernetes cluster to loadtest a branch or pr.",
@@ -269,7 +259,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
 
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, loadtestKubeCmd)
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, checkCutReleaseStatusCmd, loadtestKubeCmd)
 
 	err = rootCmd.Execute()
 
@@ -282,7 +272,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 var finalVersionRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+$")
 var rcRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+-rc[0-9]+$")
 
-func curReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, backport bool, dryrun bool) error {
+func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, backport bool, dryrun bool) error {
 	if len(args) < 1 {
 		return NewError("You need to specifiy a release version.", nil)
 	}
@@ -340,7 +330,8 @@ func curReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 	if err := CutRelease(releasePart, rcPart, isFirstMinorRelease, backport, dryrun); err != nil {
 		WriteErrorResponse(w, err)
 	} else {
-		WriteResponse(w, "Release "+args[0]+" is on the way.", IN_CHANNEL)
+		msg := fmt.Sprintf("Release **%v** is on the way.", args[0])
+		WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", IN_CHANNEL)
 	}
 	return nil
 }
@@ -372,7 +363,8 @@ func setCIBranchCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlash
 	}
 
 	LogInfo("CI servers now pointed at " + args[0])
-	WriteResponse(w, "CI servers now pointed at "+args[0], IN_CHANNEL)
+	msg := fmt.Sprintf("CI servers now pointed at **%v**", args[0])
+	WriteEnrichedResponse(w, "CI Servers", msg, "#0060aa", IN_CHANNEL)
 	return nil
 }
 
@@ -385,7 +377,8 @@ func runJobCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlashComma
 		return err
 	}
 
-	WriteResponse(w, "Ran job "+args[0], IN_CHANNEL)
+	msg := fmt.Sprintf("Ran job **%v**", args[0])
+	WriteEnrichedResponse(w, "Jenkins Job", msg, "#0060aa", IN_CHANNEL)
 	return nil
 }
 
@@ -398,7 +391,23 @@ func setPreReleaseCmdF(args []string, w http.ResponseWriter, slashCommand *MMSla
 		return err
 	}
 
-	WriteResponse(w, "Set pre-release to "+args[0], IN_CHANNEL)
+	msg := fmt.Sprintf("Set pre-release to **%v**", args[0])
+	WriteEnrichedResponse(w, "Pre-Release", msg, "#0060aa", IN_CHANNEL)
+
+	return nil
+}
+
+func checkCutReleaseStatusF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
+	LogInfo("Running Check Cut Release Status")
+	status, err := GetLatestResult(Cfg.PreReleaseJob)
+	if err != nil {
+		LogError("[checkCutReleaseStatusF] Unable to get the Job: " + Cfg.PreReleaseJob + " err=" + err.Error())
+		return err
+	}
+
+	msg := fmt.Sprintf("Status of *%v*: **%v** Duration: **%v**", Cfg.PreReleaseJob, status.Status, utils.MilisecsToMinutes(status.Duration))
+
+	WriteEnrichedResponse(w, "Status of Jenkins Job", msg, status.Color, IN_CHANNEL)
 	return nil
 }
 
