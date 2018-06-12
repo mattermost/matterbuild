@@ -264,7 +264,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	err = rootCmd.Execute()
 
 	if err != nil || len(outBuf.String()) > 0 {
-		WriteResponse(w, outBuf.String(), EPHEMERAL)
+		WriteEnrichedResponse(w, "Information", outBuf.String(), "#0060aa", EPHEMERAL)
 	}
 	return
 }
