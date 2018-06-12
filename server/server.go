@@ -401,11 +401,11 @@ func checkCutReleaseStatusF(args []string, w http.ResponseWriter, slashCommand *
 	LogInfo("Running Check Cut Release Status")
 	status, err := GetLatestResult(Cfg.ReleaseJob)
 	if err != nil {
-		LogError("[checkCutReleaseStatusF] Unable to get the Job: " + Cfg.PreReleaseJob + " err=" + err.Error())
+		LogError("[checkCutReleaseStatusF] Unable to get the Job: " + Cfg.ReleaseJob + " err=" + err.Error())
 		return err
 	}
 
-	msg := fmt.Sprintf("Status of *%v*: **%v** Duration: **%v**", Cfg.PreReleaseJob, status.Status, utils.MilisecsToMinutes(status.Duration))
+	msg := fmt.Sprintf("Status of *%v*: **%v** Duration: **%v**", Cfg.ReleaseJob, status.Status, utils.MilisecsToMinutes(status.Duration))
 
 	WriteEnrichedResponse(w, "Status of Jenkins Job", msg, status.Color, IN_CHANNEL)
 	return nil
