@@ -399,7 +399,7 @@ func setPreReleaseCmdF(args []string, w http.ResponseWriter, slashCommand *MMSla
 
 func checkCutReleaseStatusF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
 	LogInfo("Running Check Cut Release Status")
-	status, err := GetLatestResult(Cfg.PreReleaseJob)
+	status, err := GetLatestResult(Cfg.ReleaseJob)
 	if err != nil {
 		LogError("[checkCutReleaseStatusF] Unable to get the Job: " + Cfg.PreReleaseJob + " err=" + err.Error())
 		return err
