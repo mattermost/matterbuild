@@ -71,7 +71,6 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 			LogInfo("Release Job Status: " + result)
 			LogInfo("Will trigger Job: " + Cfg.RCTestingJob)
 			RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease})
-			return
 		}
 
 		// Only update the CI servers and pre-release if this is the latest release
