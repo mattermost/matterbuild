@@ -75,12 +75,16 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 
 		// Only update the CI servers and pre-release if this is the latest release
 		if !backportRelease {
+			LogInfo("Setting CI Servers")
 			SetCIServerBranch(releaseBranch)
 
 			//Deploy to OSS Server
+			LogInfo("Deploy MM to OSS Server")
 			RunJobParameters(Cfg.OSSServerJob, map[string]string{"MM_VERSION": fullRelease})
 
+			LogInfo("Setting pre-release Server")
 			SetPreReleaseTarget(fullRelease)
+			LogInfo("Running job to update pre-release")
 			RunJob(Cfg.PreReleaseJob)
 		}
 	}()
