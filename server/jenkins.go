@@ -27,6 +27,14 @@ func getJenkins() (*gojenkins.Jenkins, *AppError) {
 }
 
 func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRelease bool, isDryRun bool) *AppError {
+	isRunning, err := IsCutReleaseRunning(Cfg.ReleaseJob)
+	if err != nil {
+		return err
+	}
+	if isRunning {
+		return NewError("There is a release job running.")
+	}
+
 	shortRelease := release[:len(release)-2]
 	releaseBranch := "release-" + shortRelease
 	fullRelease := release + "-" + rc
@@ -312,6 +320,27 @@ func LoadtestKube(buildTag string, length int, delay int) *AppError {
 		"PPROF_DELAY":         strconv.Itoa(delay),
 	})
 	return nil
+}
+
+func IsCutReleaseRunning(name string) (bool, *AppError) {
+	buildStatus := &JenkinsStatus{}
+	job, err := getJob(name)
+	if err != nil {
+		LogError("[IsCutReleaseRunning] Did not find Job: " + name + " err=" + err.Error())
+		return nil, err
+	}
+
+	build, err1 := job.GetLastBuild()
+	if err1 != nil {
+		LogError("[IsCutReleaseRunning] Error getting the last build for: " + name + " err=" + err1.Error())
+		return false, NewError("Unable to get last build", err1)
+	}
+
+	if build.IsRunning() {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func GetLatestResult(name string) (*JenkinsStatus, *AppError) {
