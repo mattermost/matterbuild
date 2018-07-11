@@ -32,7 +32,7 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		return err
 	}
 	if isRunning {
-		return NewError("There is a release job running.")
+		return NewError("There is a release job running.", nil)
 	}
 
 	shortRelease := release[:len(release)-2]
@@ -328,11 +328,10 @@ func LoadtestKube(buildTag string, length int, delay int) *AppError {
 }
 
 func IsCutReleaseRunning(name string) (bool, *AppError) {
-	buildStatus := &JenkinsStatus{}
 	job, err := getJob(name)
 	if err != nil {
 		LogError("[IsCutReleaseRunning] Did not find Job: " + name + " err=" + err.Error())
-		return nil, err
+		return false, err
 	}
 
 	build, err1 := job.GetLastBuild()
