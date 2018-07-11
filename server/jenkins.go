@@ -56,6 +56,11 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		isDryRunStr = "true"
 	}
 
+	isDotReleaseStr := "false"
+	if backportRelease {
+		isDotReleaseStr = "true"
+	}
+
 	if err := RunReleasePrechecks(); err != nil {
 		return err
 	}
@@ -70,6 +75,7 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 				"MM_RC":                  rcpart,
 				"IS_FIRST_MINOR_RELEASE": isFirstMinorReleaseStr,
 				"IS_DRY_RUN":             isDryRunStr,
+				"IS_DOT_RELEASE":         isDotReleaseStr,
 			})
 		if err != nil || result != gojenkins.STATUS_SUCCESS {
 			LogError("Release Job failed. Version=" + fullRelease + " err= " + err.Error() + " Jenkins result= " + result)
@@ -77,23 +83,22 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		} else {
 			// If Release was success trigger the Rctesting job to update
 			LogInfo("Release Job Status: " + result)
-			LogInfo("Will trigger Job: " + Cfg.RCTestingJob)
-			RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease})
-		}
+			if !backportRelease {
+				LogInfo("Will trigger Job: " + Cfg.RCTestingJob)
+				RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease})
 
-		// Only update the CI servers and pre-release if this is the latest release
-		if !backportRelease {
-			LogInfo("Setting CI Servers")
-			SetCIServerBranch(releaseBranch)
+				//Deploy to OSS Server
+				LogInfo("Deploy MM to OSS Server")
+				RunJobParameters(Cfg.OSSServerJob, map[string]string{"MM_VERSION": fullRelease})
+				// Only update the CI servers and pre-release if this is the latest release
+				LogInfo("Setting CI Servers")
+				SetCIServerBranch(releaseBranch)
 
-			//Deploy to OSS Server
-			LogInfo("Deploy MM to OSS Server")
-			RunJobParameters(Cfg.OSSServerJob, map[string]string{"MM_VERSION": fullRelease})
-
-			LogInfo("Setting pre-release Server")
-			SetPreReleaseTarget(fullRelease)
-			LogInfo("Running job to update pre-release")
-			RunJob(Cfg.PreReleaseJob)
+				LogInfo("Setting pre-release Server")
+				SetPreReleaseTarget(fullRelease)
+				LogInfo("Running job to update pre-release")
+				RunJob(Cfg.PreReleaseJob)
+			}
 		}
 	}()
 
