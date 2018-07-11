@@ -48,6 +48,11 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		isDryRunStr = "true"
 	}
 
+	isDotReleaseStr := "false"
+	if backportRelease {
+		isDotReleaseStr = "true"
+	}
+
 	if err := RunReleasePrechecks(); err != nil {
 		return err
 	}
@@ -62,6 +67,7 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 				"MM_RC":                  rcpart,
 				"IS_FIRST_MINOR_RELEASE": isFirstMinorReleaseStr,
 				"IS_DRY_RUN":             isDryRunStr,
+				"IS_DOT_RELEASE":         isDotReleaseStr,
 			})
 		if err != nil || result != gojenkins.STATUS_SUCCESS {
 			LogError("Release Job failed. Version=" + fullRelease + " err= " + err.Error() + " Jenkins result= " + result)
