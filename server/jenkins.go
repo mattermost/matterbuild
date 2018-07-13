@@ -260,7 +260,7 @@ func RunJobWaitForResult(name string, parameters map[string]string) (string, *Ap
 	build.Poll()
 	for build.IsRunning() {
 		LogInfo("[RunJobWaitForResult] Waiting for job: " + name + " to complete")
-		time.Sleep(time.Second * 10)
+		time.Sleep(time.Second * 30)
 		build.Poll()
 	}
 
