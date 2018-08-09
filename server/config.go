@@ -21,11 +21,12 @@ type MatterbuildConfig struct {
 
 	CIServerJobs []string
 
-	ReleaseJob           string
-	PreChecksJob         string
-	OSSServerJob         string
-	RCTestingJob         string
-	TranslationServerJob string
+	ReleaseJob                string
+	PreChecksJob              string
+	OSSServerJob              string
+	RCTestingJob              string
+	TranslationServerJob      string
+	CheckTranslationServerJob string
 
 	PreReleaseJob string
 
