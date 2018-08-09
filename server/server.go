@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/bndr/gojenkins"
 	"github.com/gorilla/schema"
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/cobra"
@@ -234,6 +235,21 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
+	var lockTranslationServerCmd = &cobra.Command{
+		Use:   "lockpootle",
+		Short: "Lock the Translation server for a particular release Branch",
+		Long:  "Lock the Translation server for a particular release Branch or to master.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			plt, _ := cmd.Flags().GetString("plt")
+			web, _ := cmd.Flags().GetString("web")
+			mobile, _ := cmd.Flags().GetString("mobile")
+			return lockTranslationServerCommandF(args, w, command, plt, web, mobile)
+		},
+	}
+	lockTranslationServerCmd.Flags().String("plt", "", "Set this flag to set the translation server to lock the server repo")
+	lockTranslationServerCmd.Flags().String("web", "", "Set this flag to set the translation server to lock the webapp repo")
+	lockTranslationServerCmd.Flags().String("mobile", "", "Set this flag to set the translation server to lock the mobile repo")
+
 	var loadtestKubeCmd = &cobra.Command{
 		Use:   "loadtest [buildtag]",
 		Short: "Create a kubernetes cluster to loadtest a branch or pr.",
@@ -259,7 +275,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
 
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, checkCutReleaseStatusCmd, loadtestKubeCmd)
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, loadtestKubeCmd)
 
 	err = rootCmd.Execute()
 
@@ -408,6 +424,43 @@ func checkCutReleaseStatusF(args []string, w http.ResponseWriter, slashCommand *
 	msg := fmt.Sprintf("Status of *%v*: **%v** Duration: **%v**", Cfg.ReleaseJob, status.Status, utils.MilisecsToMinutes(status.Duration))
 
 	WriteEnrichedResponse(w, "Status of Jenkins Job", msg, status.Color, IN_CHANNEL)
+	return nil
+}
+
+func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, plt, web, mobile string) error {
+
+	if plt == "" && web == "" && mobile == "" {
+		msg := "You need to set at least one branch to lock. Please check the help."
+		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", IN_CHANNEL)
+		return nil
+	}
+
+	result, err := RunJobWaitForResult(
+		Cfg.TranslationServerJob,
+		map[string]string{
+			"PLT_BRANCH": plt,
+			"WEB_BRANCH": web,
+			"RN_BRANCH":  mobile,
+		})
+	if err != nil || result != gojenkins.STATUS_SUCCESS {
+		LogError("Translation job failed. err= " + err.Error() + " Jenkins result= " + result)
+		msg := fmt.Sprintf("Translation Job Fail. Please Check the Jenkins Logs. Jenkins Status: %v", result)
+		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", IN_CHANNEL)
+		return nil
+	}
+
+	msg := "Translation Server was lock to those Branches:\n"
+	if plt != "" {
+		msg += fmt.Sprintf("* Server Branch: **%v**\n", plt)
+	}
+	if web != "" {
+		msg += fmt.Sprintf("* Webapp Branch: **%v**\n", web)
+	}
+	if mobile != "" {
+		msg += fmt.Sprintf("* Mobile Branch: **%v**\n", mobile)
+	}
+
+	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", IN_CHANNEL)
 	return nil
 }
 
