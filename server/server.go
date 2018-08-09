@@ -6,6 +6,7 @@ package server
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -250,6 +251,14 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	lockTranslationServerCmd.Flags().String("web", "", "Set this flag to set the translation server to lock the webapp repo")
 	lockTranslationServerCmd.Flags().String("mobile", "", "Set this flag to set the translation server to lock the mobile repo")
 
+	var checkBranchTranslationCmd = &cobra.Command{
+		Use:   "getpootle",
+		Short: "Check the branches set in the Translation Server",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return checkBranchTranslationCmdF(args, w, command)
+		},
+	}
+
 	var loadtestKubeCmd = &cobra.Command{
 		Use:   "loadtest [buildtag]",
 		Short: "Create a kubernetes cluster to loadtest a branch or pr.",
@@ -275,7 +284,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
 
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, loadtestKubeCmd)
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, loadtestKubeCmd)
 
 	err = rootCmd.Execute()
 
@@ -449,7 +458,7 @@ func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCo
 		return nil
 	}
 
-	msg := "Translation Server was lock to those Branches:\n"
+	msg := "Translation Server is lock to those Branches:\n"
 	if plt != "" {
 		msg += fmt.Sprintf("* Server Branch: **%v**\n", plt)
 	}
@@ -461,6 +470,38 @@ func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCo
 	}
 
 	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", IN_CHANNEL)
+	return nil
+}
+
+func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
+	result, err := RunJobWaitForResult(Cfg.CheckTranslationServerJob, map[string]string{})
+	if err != nil || result != gojenkins.STATUS_SUCCESS {
+		LogError("Translation job failed. err= " + err.Error() + " Jenkins result= " + result)
+		msg := fmt.Sprintf("Translation Job Fail. Please Check the Jenkins Logs. Jenkins Status: %v", result)
+		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", IN_CHANNEL)
+		return nil
+	}
+
+	artifacts, err := GetJenkinsArtifacts(Cfg.CheckTranslationServerJob)
+	if err != nil {
+		return err
+	}
+	file := fmt.Sprintf("/tmp/%v", artifacts[0].FileName)
+	dat, _ := ioutil.ReadFile(file)
+
+	tmpMsg := string(dat)
+	tmpMsg = strings.Replace(tmpMsg, "PLT_BRANCH=", "Server Branch:", -1)
+	tmpMsg = strings.Replace(tmpMsg, "WEB_BRANCH=", "Webapp Branch:", -1)
+	tmpMsg = strings.Replace(tmpMsg, "RN_BRANCH=", "Mobile Branch:", -1)
+	tmpMsg = strings.Replace(tmpMsg, "\"", " **", -1)
+	splittedMsg := strings.Split(tmpMsg, "\n")
+	msg := "Translation Server have lock to those Branches:\n"
+	for _, txt := range splittedMsg {
+		msg += fmt.Sprintf("%v\n", txt)
+	}
+
+	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", IN_CHANNEL)
+
 	return nil
 }
 
