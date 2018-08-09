@@ -377,3 +377,29 @@ func GetLatestResult(name string) (*JenkinsStatus, *AppError) {
 
 	return buildStatus, nil
 }
+
+func GetJenkinsArtifacts(jobname string) ([]gojenkins.Artifact, *AppError) {
+	job, err := getJob(jobname)
+	if err != nil {
+		LogError("[GetJenkinsArtifact] Did not find Job: " + jobname + " err=" + err.Error())
+		return nil, err
+	}
+
+	build, err1 := job.GetLastBuild()
+	if err1 != nil {
+		LogError("[GetJenkinsArtifact] Error getting the last build for: " + jobname + " err=" + err1.Error())
+		return nil, NewError("Unable to get last build", err1)
+	}
+
+	artifacts := build.GetArtifacts()
+	if len(artifacts) == 0 {
+		LogError("[GetJenkinsArtifact] No artifacts returned: " + jobname)
+		return nil, NewError("No artifacts returned", nil)
+	}
+
+	for _, a := range artifacts {
+		a.SaveToDir("/tmp")
+	}
+
+	return artifacts, nil
+}
