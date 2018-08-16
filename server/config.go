@@ -27,10 +27,18 @@ type MatterbuildConfig struct {
 	RCTestingJob              string
 	TranslationServerJob      string
 	CheckTranslationServerJob string
+	GithubAccessToken         string
+	GithubUsername            string
+	Repositories              []*Repository
 
 	PreReleaseJob string
 
 	KubeDeployJob string
+}
+
+type Repository struct {
+	Owner string
+	Name  string
 }
 
 var Cfg *MatterbuildConfig = &MatterbuildConfig{}
