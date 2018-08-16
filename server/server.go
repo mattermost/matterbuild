@@ -259,6 +259,17 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
+	var mergeReleaseBranchToMasterCmd = &cobra.Command{
+		Use:   "merge",
+		Short: "Merge the specified release branch to master and create the pull request",
+		Long:  "Merge the specified release branch to master and create the pull request.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			releaseBranch, _ := cmd.Flags().GetString("release")
+			return mergeReleaseBranchToMasterCommandF(args, w, command, releaseBranch)
+		},
+	}
+	mergeReleaseBranchToMasterCmd.Flags().String("release", "", "Name of the release branch")
+
 	var loadtestKubeCmd = &cobra.Command{
 		Use:   "loadtest [buildtag]",
 		Short: "Create a kubernetes cluster to loadtest a branch or pr.",
@@ -284,7 +295,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
 
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, loadtestKubeCmd)
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, mergeReleaseBranchToMasterCmd, loadtestKubeCmd)
 
 	err = rootCmd.Execute()
 
@@ -502,6 +513,21 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 
 	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", IN_CHANNEL)
 
+	return nil
+}
+
+func mergeReleaseBranchToMasterCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, releaseBranch string) error {
+	if releaseBranch == "" {
+		return NewError("You need to specifiy a release branch.", nil)
+	}
+
+	msg, err := CreateMergeAndPr(releaseBranch)
+	if err != nil {
+		return err
+	}
+
+	title := fmt.Sprintf("Merge Release Branch %s to Master", releaseBranch)
+	WriteEnrichedResponse(w, title, msg, "#0060aa", IN_CHANNEL)
 	return nil
 }
 
