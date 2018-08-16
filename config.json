@@ -15,5 +15,17 @@
     "PreReleaseJob": "",
     "OSSServerJob": "",
     "RCTestingJob": "",
-    "KubeDeployJob": ""
+    "KubeDeployJob": "",
+    "GithubAccessToken": "",
+    "GithubUsername": "",
+    "Repositories": [
+    {
+      "Owner": "",
+      "Name": ""
+    },
+    {
+      "Owner": "",
+      "Name": ""
+    }
+  ]
 }
