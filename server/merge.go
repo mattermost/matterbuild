@@ -82,10 +82,16 @@ func createMergeAndPr(repository *Repository, branchToMerge string) (string, *Ap
 		CommitMessage: github.String(commitMessage),
 	}
 
-	merge, _, err := client.Repositories.Merge(ctx, repository.Owner, repository.Name, newMerge)
+	merge, resp, err := client.Repositories.Merge(ctx, repository.Owner, repository.Name, newMerge)
 	if err != nil {
+		LogError("Merge created: " + *merge.HTMLURL + " for repo: " + repository.Name)
 		msg := fmt.Sprintf("Error when merging the branch. Please perform the merge manually for %s.", repository.Name)
 		return "", NewError(msg, err)
+	}
+	if resp.Response.StatusCode == 204 {
+		msg := fmt.Sprintf("Nothing to Merge for **%s**", repository.Name)
+		LogInfo(msg)
+		return msg, nil
 	}
 	LogInfo("Merge created: " + *merge.HTMLURL + " for repo: " + repository.Name)
 
