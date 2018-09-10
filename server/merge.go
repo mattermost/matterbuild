@@ -39,7 +39,7 @@ func CreateMergeAndPr(branchToMerge string) (string, *AppError) {
 
 	msg = msg + "#### Errors:\n"
 	for _, errMsg := range repoError {
-		msg = msg + errMsg + "\n"
+		msg = msg + "- " + errMsg + "\n"
 	}
 
 	return msg, nil
@@ -89,8 +89,8 @@ func createMergeAndPr(repository *Repository, branchToMerge string) (string, *Ap
 
 	merge, resp, err := client.Repositories.Merge(ctx, repository.Owner, repository.Name, newMerge)
 	if err != nil {
-		LogError("Merge created: " + *merge.HTMLURL + " for repo: " + repository.Name)
 		msg := fmt.Sprintf("Error when merging the branch. Please perform the merge manually for %s.", repository.Name)
+		LogError(msg)
 		return "", NewError(msg, err)
 	}
 	if resp.Response.StatusCode == 204 {
