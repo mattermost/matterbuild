@@ -69,9 +69,14 @@ func createMergeAndPr(repository *Repository, branchToMerge string) (string, *Ap
 		},
 	}
 
-	newBranch, _, err = client.Git.CreateRef(ctx, repository.Owner, repository.Name, newBranch)
+	newBranch, resp, err := client.Git.CreateRef(ctx, repository.Owner, repository.Name, newBranch)
 	if err != nil {
 		return "", NewError("Error when creating the new branch.", err)
+	}
+	if resp.Response.StatusCode != 201 {
+		msg := fmt.Sprintf("Error when creating the branch", repository.Name)
+		LogInfo(msg)
+		return msg, nil
 	}
 	LogInfo("New Branch Ref: " + *newBranch.Ref + " for repo: " + repository.Name)
 
@@ -90,6 +95,11 @@ func createMergeAndPr(repository *Repository, branchToMerge string) (string, *Ap
 	}
 	if resp.Response.StatusCode == 204 {
 		msg := fmt.Sprintf("Nothing to Merge for **%s**", repository.Name)
+		LogInfo(msg)
+		return msg, nil
+	}
+	if resp.Response.StatusCode == 409 {
+		msg := fmt.Sprintf("Error when Merging. Please perform the merge manually for %s.", repository.Name)
 		LogInfo(msg)
 		return msg, nil
 	}
