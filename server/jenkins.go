@@ -10,6 +10,8 @@ import (
 
 	"github.com/beevik/etree"
 	"github.com/bndr/gojenkins"
+
+	"github.com/mattermost/matterbuild/utils"
 )
 
 type JenkinsStatus struct {
@@ -87,9 +89,15 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 				LogInfo("Will trigger Job: " + Cfg.RCTestingJob)
 				RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease})
 
-				//Deploy to OSS Server
-				LogInfo("Deploy MM to OSS Server")
-				RunJobParameters(Cfg.OSSServerJob, map[string]string{"MM_VERSION": fullRelease})
+				//Only update OSS in odd release which is quality release, eg 5.5.0 / 5.7.0
+				releaseSplit := strings.Split(release, ".")
+				minorVersion, _ := strconv.Atoi(releaseSplit[len(releaseSplit)-2])
+				if utils.Odd(minorVersion) {
+					//Deploy to OSS Server
+					LogInfo("Deploy MM to OSS Server")
+					RunJobParameters(Cfg.OSSServerJob, map[string]string{"MM_VERSION": fullRelease})
+				}
+
 				// Only update the CI servers and pre-release if this is the latest release
 				LogInfo("Setting CI Servers")
 				SetCIServerBranch(releaseBranch)
