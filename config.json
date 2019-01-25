@@ -9,10 +9,10 @@
     "CIServerJobs": [
     ],
     "ReleaseJob": "",
+    "ReleaseJobLegacy": "",
     "PreChecksJob": "",
     "TranslationServerJob": "",
     "CheckTranslationServerJob": "",
-    "PreReleaseJob": "",
     "OSSServerJob": "",
     "RCTestingJob": "",
     "KubeDeployJob": "",
