@@ -28,8 +28,17 @@ func getJenkins() (*gojenkins.Jenkins, *AppError) {
 	return jenkins, nil
 }
 
-func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRelease bool, isDryRun bool) *AppError {
-	isRunning, err := IsCutReleaseRunning(Cfg.ReleaseJob)
+// Run the Jenkins job to cut the release
+func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRelease bool,
+	isDryRun bool, legacy bool, server string, webapp string) *AppError {
+	var jobName string
+	if legacy {
+		jobName = Cfg.ReleaseJobLegacy
+	} else {
+		jobName = Cfg.ReleaseJob
+	}
+
+	isRunning, err := IsCutReleaseRunning(jobName)
 	if err != nil {
 		return err
 	}
@@ -67,18 +76,29 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		return err
 	}
 
+	parameters := map[string]string{
+		"MM_VERSION":             release,
+		"MM_RC":                  rcpart,
+		"IS_FIRST_MINOR_RELEASE": isFirstMinorReleaseStr,
+		"IS_DRY_RUN":             isDryRunStr,
+		"IS_DOT_RELEASE":         isDotReleaseStr,
+		"IS_BACKPORT":            isDotReleaseStr,
+	}
+
+	if server != "" {
+		parameters["MM_BUILDER_SERVER_DOCKER"] = server
+	}
+
+	if webapp != "" {
+		parameters["MM_BUILDER_WEBAPP_DOCKER"] = webapp
+	}
+
 	// We want to return so the user knows the build has started.
 	// Build jobs should report their own failure.
 	go func() {
 		result, err := RunJobWaitForResult(
-			Cfg.ReleaseJob,
-			map[string]string{
-				"MM_VERSION":             release,
-				"MM_RC":                  rcpart,
-				"IS_FIRST_MINOR_RELEASE": isFirstMinorReleaseStr,
-				"IS_DRY_RUN":             isDryRunStr,
-				"IS_DOT_RELEASE":         isDotReleaseStr,
-			})
+			jobName,
+			parameters)
 		if err != nil || result != gojenkins.STATUS_SUCCESS {
 			LogError("Release Job failed. Version=" + fullRelease + " err= " + err.Error() + " Jenkins result= " + result)
 			return
@@ -102,10 +122,6 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 				LogInfo("Setting CI Servers")
 				SetCIServerBranch(releaseBranch)
 
-				LogInfo("Setting pre-release Server")
-				SetPreReleaseTarget(fullRelease)
-				LogInfo("Running job to update pre-release")
-				RunJob(Cfg.PreReleaseJob)
 			}
 		}
 	}()
@@ -283,41 +299,6 @@ func RunJobParameters(name string, parameters map[string]string) *AppError {
 		if err2 != nil {
 			LogError("[RunJobParameters] Unable to envoke job. err=" + err.Error())
 			return NewError("Unable to envoke job.", err)
-		}
-	}
-
-	return nil
-}
-
-func SetPreReleaseTarget(target string) *AppError {
-	if config, err := GetJobConfig(Cfg.PreReleaseJob); err != nil {
-		return err
-	} else {
-		config = strings.Replace(config, "version='1.1'", "version='1.0'", 1)
-		config = strings.Replace(config, "version=\"1.1\"", "version=\"1.0\"", 1)
-		jConfig := etree.NewDocument()
-		if err := jConfig.ReadFromString(config); err != nil {
-			LogError("[SetPreReleaseTarget] Unable to read job configuration for pre-release. err=", err.Error())
-			return NewError("Unable to read job configuration for pre-release", err)
-		}
-
-		// Change target to upload
-		element := jConfig.Root().FindElement("./properties/hudson.model.ParametersDefinitionProperty/parameterDefinitions/hudson.model.StringParameterDefinition/defaultValue")
-		if element == nil {
-			return NewError("Unable to find element for pre-release target", nil)
-		}
-		element.SetText(target)
-
-		jConfigStringOut, err := jConfig.WriteToString()
-		if err != nil {
-			LogError("[SetPreReleaseTarget] Unable to write out final job config for pre-release job. err=" + err.Error())
-			return NewError("Unable to write out final job config for pre-release job", err)
-		}
-
-		jConfigStringOut = strings.Replace(jConfigStringOut, "version=\"1.0\"", "version=\"1.1\"", 1)
-		if err := SaveJobConfig(Cfg.PreReleaseJob, jConfigStringOut); err != nil {
-			LogError("[SetPreReleaseTarget] Unable to save job for pre-release. err=" + err.Error())
-			return NewError("Unable to save job for pre-release", err)
 		}
 	}
 

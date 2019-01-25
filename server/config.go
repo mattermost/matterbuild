@@ -22,6 +22,7 @@ type MatterbuildConfig struct {
 	CIServerJobs []string
 
 	ReleaseJob                string
+	ReleaseJobLegacy          string
 	PreChecksJob              string
 	OSSServerJob              string
 	RCTestingJob              string
@@ -30,8 +31,6 @@ type MatterbuildConfig struct {
 	GithubAccessToken         string
 	GithubUsername            string
 	Repositories              []*Repository
-
-	PreReleaseJob string
 
 	KubeDeployJob string
 }

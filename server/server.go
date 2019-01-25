@@ -190,11 +190,17 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		RunE: func(cmd *cobra.Command, args []string) error {
 			backport, _ := cmd.Flags().GetBool("backport")
 			dryrun, _ := cmd.Flags().GetBool("dryrun")
-			return cutReleaseCommandF(args, w, command, backport, dryrun)
+			legacy, _ := cmd.Flags().GetBool("legacy")
+			server, _ := cmd.Flags().GetString("server")
+			webapp, _ := cmd.Flags().GetString("webapp")
+			return cutReleaseCommandF(args, w, command, backport, dryrun, legacy, server, webapp)
 		},
 	}
 	cutCmd.Flags().Bool("backport", false, "Set this flag for releases that are not on the current major release branch.")
 	cutCmd.Flags().Bool("dryrun", false, "Set this flag for testing the release build without pushing tags or artifacts.")
+	cutCmd.Flags().Bool("legacy", false, "Set this flag to build release older then release number `5.7.X`.")
+	cutCmd.Flags().String("server", "", "Set this flag to define the Docker image used to build the server.")
+	cutCmd.Flags().String("webapp", "", "Set this flag to define the Docker image used to build the webapp.")
 
 	var configDumpCmd = &cobra.Command{
 		Use:   "seeconf",
@@ -220,19 +226,12 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
-	var setPreReleaseCmd = &cobra.Command{
-		Use:   "setprerelease",
-		Short: "Set the target for pre-release.",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return setPreReleaseCmdF(args, w, command)
-		},
-	}
-
 	var checkCutReleaseStatusCmd = &cobra.Command{
 		Use:   "cutstatus",
 		Short: "Check the status of the Cut Release Job",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return checkCutReleaseStatusF(args, w, command)
+			legacy, _ := cmd.Flags().GetBool("legacy")
+			return checkCutReleaseStatusF(args, w, command, legacy)
 		},
 	}
 
@@ -259,17 +258,6 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
-	var mergeReleaseBranchToMasterCmd = &cobra.Command{
-		Use:   "merge",
-		Short: "Merge the specified release branch to master and create the pull request",
-		Long:  "Merge the specified release branch to master and create the pull request.",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			releaseBranch, _ := cmd.Flags().GetString("release")
-			return mergeReleaseBranchToMasterCommandF(args, w, command, releaseBranch)
-		},
-	}
-	mergeReleaseBranchToMasterCmd.Flags().String("release", "", "Name of the release branch")
-
 	var loadtestKubeCmd = &cobra.Command{
 		Use:   "loadtest [buildtag]",
 		Short: "Create a kubernetes cluster to loadtest a branch or pr.",
@@ -295,7 +283,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
 
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, setPreReleaseCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, mergeReleaseBranchToMasterCmd, loadtestKubeCmd)
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, loadtestKubeCmd)
 
 	err = rootCmd.Execute()
 
@@ -308,7 +296,8 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 var finalVersionRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+$")
 var rcRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+-rc[0-9]+$")
 
-func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, backport bool, dryrun bool) error {
+func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, backport bool,
+	dryrun bool, legacy bool, server string, webapp string) error {
 	if len(args) < 1 {
 		return NewError("You need to specifiy a release version.", nil)
 	}
@@ -363,7 +352,8 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		}
 	}
 
-	if err := CutRelease(releasePart, rcPart, isFirstMinorRelease, backport, dryrun); err != nil {
+	err := CutRelease(releasePart, rcPart, isFirstMinorRelease, backport, dryrun, legacy, server, webapp)
+	if err != nil {
 		WriteErrorResponse(w, err)
 	} else {
 		msg := fmt.Sprintf("Release **%v** is on the way.", args[0])
@@ -418,30 +408,21 @@ func runJobCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlashComma
 	return nil
 }
 
-func setPreReleaseCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
-	if len(args) < 1 {
-		return NewError("You need to specify a target", nil)
+func checkCutReleaseStatusF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, legacy bool) error {
+	var jobName string
+	if legacy {
+		jobName = Cfg.ReleaseJobLegacy
+	} else {
+		jobName = Cfg.ReleaseJob
 	}
-
-	if err := SetPreReleaseTarget(args[0]); err != nil {
-		return err
-	}
-
-	msg := fmt.Sprintf("Set pre-release to **%v**", args[0])
-	WriteEnrichedResponse(w, "Pre-Release", msg, "#0060aa", IN_CHANNEL)
-
-	return nil
-}
-
-func checkCutReleaseStatusF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
 	LogInfo("Running Check Cut Release Status")
-	status, err := GetLatestResult(Cfg.ReleaseJob)
+	status, err := GetLatestResult(jobName)
 	if err != nil {
-		LogError("[checkCutReleaseStatusF] Unable to get the Job: " + Cfg.ReleaseJob + " err=" + err.Error())
+		LogError("[checkCutReleaseStatusF] Unable to get the Job: " + jobName + " err=" + err.Error())
 		return err
 	}
 
-	msg := fmt.Sprintf("Status of *%v*: **%v** Duration: **%v**", Cfg.ReleaseJob, status.Status, utils.MilisecsToMinutes(status.Duration))
+	msg := fmt.Sprintf("Status of *%v*: **%v** Duration: **%v**", jobName, status.Status, utils.MilisecsToMinutes(status.Duration))
 
 	WriteEnrichedResponse(w, "Status of Jenkins Job", msg, status.Color, IN_CHANNEL)
 	return nil
@@ -455,21 +436,7 @@ func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCo
 		return nil
 	}
 
-	result, err := RunJobWaitForResult(
-		Cfg.TranslationServerJob,
-		map[string]string{
-			"PLT_BRANCH": plt,
-			"WEB_BRANCH": web,
-			"RN_BRANCH":  mobile,
-		})
-	if err != nil || result != gojenkins.STATUS_SUCCESS {
-		LogError("Translation job failed. err= " + err.Error() + " Jenkins result= " + result)
-		msg := fmt.Sprintf("Translation Job Fail. Please Check the Jenkins Logs. Jenkins Status: %v", result)
-		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", IN_CHANNEL)
-		return nil
-	}
-
-	msg := "Translation Server is lock to those Branches:\n"
+	msg := "Jenkins Job is running but we set the translation Server to those Branches:\n"
 	if plt != "" {
 		msg += fmt.Sprintf("* Server Branch: **%v**\n", plt)
 	}
@@ -481,6 +448,18 @@ func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCo
 	}
 
 	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", IN_CHANNEL)
+
+	result, err := RunJobWaitForResult(
+		Cfg.TranslationServerJob,
+		map[string]string{
+			"PLT_BRANCH": plt,
+			"WEB_BRANCH": web,
+			"RN_BRANCH":  mobile,
+		})
+	if err != nil || result != gojenkins.STATUS_SUCCESS {
+		LogError("Translation job failed. err= " + err.Error() + " Jenkins result= " + result)
+	}
+
 	return nil
 }
 
@@ -513,21 +492,6 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 
 	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", IN_CHANNEL)
 
-	return nil
-}
-
-func mergeReleaseBranchToMasterCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, releaseBranch string) error {
-	if releaseBranch == "" {
-		return NewError("You need to specifiy a release branch.", nil)
-	}
-
-	msg, err := CreateMergeAndPr(releaseBranch)
-	if err != nil {
-		return err
-	}
-
-	title := fmt.Sprintf("Merge Release Branch %s to Master", releaseBranch)
-	WriteEnrichedResponse(w, title, msg, "#0060aa", IN_CHANNEL)
 	return nil
 }
 
