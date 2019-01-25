@@ -198,7 +198,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	}
 	cutCmd.Flags().Bool("backport", false, "Set this flag for releases that are not on the current major release branch.")
 	cutCmd.Flags().Bool("dryrun", false, "Set this flag for testing the release build without pushing tags or artifacts.")
-	cutCmd.Flags().Bool("legacy", false, "Set this flag to build release older then release number `5.7.X`.")
+	cutCmd.Flags().Bool("legacy", false, "Set this flag to build release older then release number 5.7.x.")
 	cutCmd.Flags().String("server", "", "Set this flag to define the Docker image used to build the server.")
 	cutCmd.Flags().String("webapp", "", "Set this flag to define the Docker image used to build the webapp.")
 
