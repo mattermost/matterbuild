@@ -194,6 +194,7 @@ func SetCIServerBranch(branch string) *AppError {
 			return err
 		}
 
+		LogInfo("Config before changes" + config)
 		config = strings.Replace(config, "version='1.1'", "version='1.0'", 1)
 		config = strings.Replace(config, "version=\"1.1\"", "version=\"1.0\"", 1)
 		jConfig := etree.NewDocument()
@@ -217,7 +218,7 @@ func SetCIServerBranch(branch string) *AppError {
 		}
 
 		jConfigStringOut = strings.Replace(jConfigStringOut, "version=\"1.0\"", "version=\"1.1\"", 1)
-		LogInfo("Config" + jConfigStringOut)
+		LogInfo("Config after changes" + jConfigStringOut)
 		if err := SaveJobConfig(serverjob, jConfigStringOut); err != nil {
 			LogError("[SetCIServerBranch] Unable to save job for " + serverjob + " err=" + err.Error())
 			return NewError("Unable to save job for "+serverjob, err)
