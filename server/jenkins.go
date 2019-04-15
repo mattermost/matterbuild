@@ -216,6 +216,7 @@ func SetCIServerBranch(branch string) *AppError {
 		}
 
 		jConfigStringOut = strings.Replace(jConfigStringOut, "version=\"1.0\"", "version=\"1.1\"", 1)
+		LogInfo("Config" + jConfigStringOut)
 		if err := SaveJobConfig(serverjob, jConfigStringOut); err != nil {
 			LogError("[SetCIServerBranch] Unable to save job for " + serverjob + " err=" + err.Error())
 			return NewError("Unable to save job for "+serverjob, err)
