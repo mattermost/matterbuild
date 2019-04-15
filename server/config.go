@@ -19,7 +19,10 @@ type MatterbuildConfig struct {
 	AllowedUsers  []string
 	ReleaseUsers  []string
 
-	CIServerJobs []string
+	CIServerJenkinsUserName string
+	CIServerJenkinsToken    string
+	CIServerJenkinsURL      string
+	CIServerJobs            []string
 
 	ReleaseJob                string
 	ReleaseJobLegacy          string

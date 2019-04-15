@@ -367,7 +367,7 @@ func configDumpCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		return NewError("You need to supply an argument", nil)
 	}
 
-	config, err := GetJobConfig(args[0])
+	config, err := GetJobConfig(args[0], Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL)
 	if err != nil {
 		return err
 	}
