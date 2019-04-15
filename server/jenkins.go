@@ -170,15 +170,16 @@ func GetJobConfig(name, jenkinsUser, jenkinsToken, jenkinsURL string) (string, *
 }
 
 func SaveJobConfig(name string, config string) *AppError {
-	if job, err := getJob(name, Cfg.CIServerJenkinsUserName, Cfg.CIServerJenkinsToken, Cfg.CIServerJenkinsURL); err != nil {
+	job, err := getJob(name, Cfg.CIServerJenkinsUserName, Cfg.CIServerJenkinsToken, Cfg.CIServerJenkinsURL)
+	if err != nil {
 		LogError("[SaveJobConfig] Unable to save job config for job: " + name + " err=" + err.Error())
 		return err
-	} else {
-		err2 := job.UpdateConfig(config)
-		if err2 != nil {
-			LogError("[SaveJobConfig] Unable to update job config for job: " + name + " err=" + err.Error())
-			return NewError("Unable to update job config", err)
-		}
+	}
+
+	errUpdate := job.UpdateConfig(config)
+	if errUpdate != nil {
+		LogError("[SaveJobConfig] Unable to update job config for job: " + name + " err=" + errUpdate.Error())
+		return NewError("Unable to update job config", errUpdate)
 	}
 
 	return nil
