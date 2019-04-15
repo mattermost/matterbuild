@@ -193,6 +193,8 @@ func SetCIServerBranch(branch string) *AppError {
 			return err
 		}
 
+		LogInfo("Config", config)
+
 		config = strings.Replace(config, "version='1.1'", "version='1.0'", 1)
 		config = strings.Replace(config, "version=\"1.1\"", "version=\"1.0\"", 1)
 		jConfig := etree.NewDocument()
