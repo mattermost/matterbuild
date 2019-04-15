@@ -4,6 +4,7 @@
 package server
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -216,6 +217,8 @@ func SetCIServerBranch(branch string) *AppError {
 			LogError("[SetCIServerBranch] Unable to write out final job config for " + serverjob + " err=" + errConfig.Error())
 			return NewError("Unable to write out final job config for "+serverjob, errConfig)
 		}
+
+		fmt.Println(jConfigStringOut)
 
 		jConfigStringOut = strings.Replace(jConfigStringOut, "version=\"1.0\"", "version=\"1.1\"", 1)
 		LogInfo("Config after changes" + jConfigStringOut)
