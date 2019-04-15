@@ -20,8 +20,8 @@ type JenkinsStatus struct {
 	Color    string
 }
 
-func getJenkins() (*gojenkins.Jenkins, *AppError) {
-	jenkins, err := gojenkins.CreateJenkins(Cfg.JenkinsURL, Cfg.JenkinsUsername, Cfg.JenkinsPassword).Init()
+func getJenkins(jenkinsUser, jenkinsToken, jenkinsURL string) (*gojenkins.Jenkins, *AppError) {
+	jenkins, err := gojenkins.CreateJenkins(jenkinsURL, jenkinsUser, jenkinsToken).Init()
 	if err != nil {
 		return nil, NewError("Unable to connect to jenkins!", err)
 	}
@@ -138,8 +138,8 @@ func RunReleasePrechecks() *AppError {
 	return nil
 }
 
-func getJob(name string) (*gojenkins.Job, *AppError) {
-	jenkins, err := getJenkins()
+func getJob(name, jenkinsUser, jenkinsToken, jenkinsURL string) (*gojenkins.Job, *AppError) {
+	jenkins, err := getJenkins(jenkinsUser, jenkinsToken, jenkinsURL)
 
 	if err != nil {
 		LogError("[getJob] Unable to get Jenkins ", err)
@@ -155,8 +155,8 @@ func getJob(name string) (*gojenkins.Job, *AppError) {
 
 }
 
-func GetJobConfig(name string) (string, *AppError) {
-	if job, err := getJob(name); err != nil {
+func GetJobConfig(name, jenkinsUser, jenkinsToken, jenkinsURL string) (string, *AppError) {
+	if job, err := getJob(name, jenkinsUser, jenkinsToken, jenkinsURL); err != nil {
 		LogError("[GetJobConfig] Unable to get the Job: " + name + " err=" + err.Error())
 		return "", err
 	} else {
@@ -170,7 +170,7 @@ func GetJobConfig(name string) (string, *AppError) {
 }
 
 func SaveJobConfig(name string, config string) *AppError {
-	if job, err := getJob(name); err != nil {
+	if job, err := getJob(name, Cfg.CIServerJenkinsUserName, Cfg.CIServerJenkinsToken, Cfg.CIServerJenkinsURL); err != nil {
 		LogError("[SaveJobConfig] Unable to save job config for job: " + name + " err=" + err.Error())
 		return err
 	} else {
@@ -187,52 +187,40 @@ func SaveJobConfig(name string, config string) *AppError {
 func SetCIServerBranch(branch string) *AppError {
 	for _, serverjob := range Cfg.CIServerJobs {
 		LogInfo("[SetCIServerBranch] Setting branch " + branch + " to " + serverjob)
-		if config, err := GetJobConfig(serverjob); err != nil {
+		config, err := GetJobConfig(serverjob, Cfg.CIServerJenkinsUserName, Cfg.CIServerJenkinsToken, Cfg.CIServerJenkinsURL)
+		if err != nil {
 			LogError("[SetCIServerBranch] Error getting the job config for" + serverjob + " err=" + err.Error())
 			return err
-		} else {
-			config = strings.Replace(config, "version='1.1'", "version='1.0'", 1)
-			config = strings.Replace(config, "version=\"1.1\"", "version=\"1.0\"", 1)
-			jConfig := etree.NewDocument()
-			if err := jConfig.ReadFromString(config); err != nil {
-				LogError("[SetCIServerBranch] Unable to read job configuration for " + serverjob + " err=" + err.Error())
-				return NewError("Unable to read job configuration for "+serverjob, err)
-			}
-
-			// Change branch to build from
-			element := jConfig.Root().FindElement("./properties/hudson.model.ParametersDefinitionProperty/parameterDefinitions/hudson.model.StringParameterDefinition/defaultValue")
-			if element == nil {
-				LogError("[SetCIServerBranch] Unable to correct default branch element for " + serverjob)
-				return NewError("Unable to correct default branch element for "+serverjob, nil)
-			}
-			element.SetText(branch)
-
-			// Change build trigger
-			element2 := jConfig.Root().FindElement("./triggers/jenkins.triggers.ReverseBuildTrigger/upstreamProjects")
-			if element2 == nil {
-				element2 = jConfig.Root().FindElement("./properties/org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty/triggers/jenkins.triggers.ReverseBuildTrigger/upstreamProjects")
-				if element2 == nil {
-					return NewError("Unable to correct build trigger element for "+serverjob, nil)
-				}
-			}
-			if branch == "master" {
-				element2.SetText("../mme/mattermost-enterprise")
-			} else {
-				element2.SetText("../mp/mattermost-platform/" + branch)
-			}
-
-			jConfigStringOut, err := jConfig.WriteToString()
-			if err != nil {
-				LogError("[SetCIServerBranch] Unable to write out final job config for " + serverjob + " err=" + err.Error())
-				return NewError("Unable to write out final job config for "+serverjob, err)
-			}
-
-			jConfigStringOut = strings.Replace(jConfigStringOut, "version=\"1.0\"", "version=\"1.1\"", 1)
-			if err := SaveJobConfig(serverjob, jConfigStringOut); err != nil {
-				LogError("[SetCIServerBranch] Unable to save job for " + serverjob + " err=" + err.Error())
-				return NewError("Unable to save job for "+serverjob, err)
-			}
 		}
+
+		config = strings.Replace(config, "version='1.1'", "version='1.0'", 1)
+		config = strings.Replace(config, "version=\"1.1\"", "version=\"1.0\"", 1)
+		jConfig := etree.NewDocument()
+		if err := jConfig.ReadFromString(config); err != nil {
+			LogError("[SetCIServerBranch] Unable to read job configuration for " + serverjob + " err=" + err.Error())
+			return NewError("Unable to read job configuration for "+serverjob, err)
+		}
+
+		// Change branch to build from
+		element := jConfig.Root().FindElement("./properties/hudson.model.ParametersDefinitionProperty/parameterDefinitions/hudson.model.StringParameterDefinition/defaultValue")
+		if element == nil {
+			LogError("[SetCIServerBranch] Unable to correct default branch element for " + serverjob)
+			return NewError("Unable to correct default branch element for "+serverjob, nil)
+		}
+		element.SetText(branch)
+
+		jConfigStringOut, errConfig := jConfig.WriteToString()
+		if errConfig != nil {
+			LogError("[SetCIServerBranch] Unable to write out final job config for " + serverjob + " err=" + errConfig.Error())
+			return NewError("Unable to write out final job config for "+serverjob, errConfig)
+		}
+
+		jConfigStringOut = strings.Replace(jConfigStringOut, "version=\"1.0\"", "version=\"1.1\"", 1)
+		if err := SaveJobConfig(serverjob, jConfigStringOut); err != nil {
+			LogError("[SetCIServerBranch] Unable to save job for " + serverjob + " err=" + err.Error())
+			return NewError("Unable to save job for "+serverjob, err)
+		}
+
 	}
 
 	return nil
@@ -244,7 +232,7 @@ func RunJob(name string) *AppError {
 }
 
 func RunJobWaitForResult(name string, parameters map[string]string) (string, *AppError) {
-	job, err := getJob(name)
+	job, err := getJob(name, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL)
 	if err != nil {
 		LogError("[RunJobWaitForResult] Did not find Job: " + name + " err=" + err.Error())
 		return "", err
@@ -292,7 +280,7 @@ func RunJobWaitForResult(name string, parameters map[string]string) (string, *Ap
 }
 
 func RunJobParameters(name string, parameters map[string]string) *AppError {
-	if job, err := getJob(name); err != nil {
+	if job, err := getJob(name, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL); err != nil {
 		return err
 	} else {
 		_, err2 := job.InvokeSimple(parameters)
@@ -317,7 +305,7 @@ func LoadtestKube(buildTag string, length int, delay int) *AppError {
 }
 
 func IsCutReleaseRunning(name string) (bool, *AppError) {
-	job, err := getJob(name)
+	job, err := getJob(name, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL)
 	if err != nil {
 		LogError("[IsCutReleaseRunning] Did not find Job: " + name + " err=" + err.Error())
 		return false, err
@@ -338,7 +326,7 @@ func IsCutReleaseRunning(name string) (bool, *AppError) {
 
 func GetLatestResult(name string) (*JenkinsStatus, *AppError) {
 	buildStatus := &JenkinsStatus{}
-	job, err := getJob(name)
+	job, err := getJob(name, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL)
 	if err != nil {
 		LogError("[GetLatestResult] Did not find Job: " + name + " err=" + err.Error())
 		return nil, err
@@ -368,7 +356,7 @@ func GetLatestResult(name string) (*JenkinsStatus, *AppError) {
 }
 
 func GetJenkinsArtifacts(jobname string) ([]gojenkins.Artifact, *AppError) {
-	job, err := getJob(jobname)
+	job, err := getJob(jobname, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL)
 	if err != nil {
 		LogError("[GetJenkinsArtifact] Did not find Job: " + jobname + " err=" + err.Error())
 		return nil, err

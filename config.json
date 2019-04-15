@@ -8,6 +8,9 @@
     "ReleaseUsers": [],
     "CIServerJobs": [
     ],
+    "CIServerJenkinsUserName": "",
+    "CIServerJenkinsToken":"",
+    "CIServerJenkinsURL": "",
     "ReleaseJob": "",
     "ReleaseJobLegacy": "",
     "PreChecksJob": "",
