@@ -107,7 +107,7 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 			LogInfo("Release Job Status: " + result)
 			if !backportRelease {
 				LogInfo("Will trigger Job: " + Cfg.RCTestingJob)
-				RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease})
+				RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease}, Cfg.CIServerJenkinsUserName, Cfg.CIServerJenkinsToken, Cfg.CIServerJenkinsURL)
 
 				//Only update OSS in odd release which is quality release, eg 5.5.0 / 5.7.0
 				releaseSplit := strings.Split(release, ".")
@@ -115,7 +115,7 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 				if utils.Odd(minorVersion) {
 					//Deploy to OSS Server
 					LogInfo("Deploy MM to OSS Server")
-					RunJobParameters(Cfg.OSSServerJob, map[string]string{"MM_VERSION": fullRelease})
+					RunJobParameters(Cfg.OSSServerJob, map[string]string{"MM_VERSION": fullRelease}, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL)
 				}
 
 				// Only update the CI servers and pre-release if this is the latest release
@@ -232,7 +232,7 @@ func SetCIServerBranch(branch string) *AppError {
 
 func RunJob(name string) *AppError {
 	LogInfo("Running Job: " + name)
-	return RunJobParameters(name, nil)
+	return RunJobParameters(name, nil, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL)
 }
 
 func RunJobWaitForResult(name string, parameters map[string]string) (string, *AppError) {
@@ -283,8 +283,8 @@ func RunJobWaitForResult(name string, parameters map[string]string) (string, *Ap
 	return build.GetResult(), nil
 }
 
-func RunJobParameters(name string, parameters map[string]string) *AppError {
-	if job, err := getJob(name, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL); err != nil {
+func RunJobParameters(name string, parameters map[string]string, jenkinsUser, jenkinsPassword, jenkinsURL string) *AppError {
+	if job, err := getJob(name, jenkinsUser, jenkinsPassword, jenkinsURL); err != nil {
 		return err
 	} else {
 		_, err2 := job.InvokeSimple(parameters)
@@ -304,7 +304,7 @@ func LoadtestKube(buildTag string, length int, delay int) *AppError {
 		"KUBE_CONFIG_FILE":    "values_loadtest.yaml",
 		"TEST_LENGTH_MINUTES": strconv.Itoa(length),
 		"PPROF_DELAY":         strconv.Itoa(delay),
-	})
+	}, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL)
 	return nil
 }
 
