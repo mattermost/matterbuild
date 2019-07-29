@@ -258,32 +258,10 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
-	var loadtestKubeCmd = &cobra.Command{
-		Use:   "loadtest [buildtag]",
-		Short: "Create a kubernetes cluster to loadtest a branch or pr.",
-		Long:  "Creates a kubernetes cluster to loadtest a branch or pr. buildtag must be a branch name or pr-0000 where 0000 is the PR number in github. Note that the branch or PR must have built before this command can be run.",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			length, err := cmd.Flags().GetInt("length")
-			if err != nil {
-				length = 20
-			}
-
-			delay, err := cmd.Flags().GetInt("delay")
-			if err != nil {
-				delay = 20
-			}
-
-			return loadtestKubeF(args, w, command, length, delay)
-		},
-	}
-
-	loadtestKubeCmd.Flags().IntP("length", "l", 20, "How long to run the load test for in minutes.")
-	loadtestKubeCmd.Flags().IntP("delay", "d", 15, "How long to delay before running the pprof.")
-
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
 
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, loadtestKubeCmd)
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd)
 
 	err = rootCmd.Execute()
 
@@ -492,18 +470,5 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 
 	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", IN_CHANNEL)
 
-	return nil
-}
-
-func loadtestKubeF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, testLength int, pprofDelay int) error {
-	if len(args) < 1 {
-		return NewError("You need to specify a build tag. A branch or pr-0000.", nil)
-	}
-
-	if err := LoadtestKube(args[0], testLength, pprofDelay); err != nil {
-		return err
-	}
-
-	WriteResponse(w, "Loadtesting: "+args[0], IN_CHANNEL)
 	return nil
 }
