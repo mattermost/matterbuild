@@ -10,8 +10,6 @@ import (
 
 	"github.com/beevik/etree"
 	"github.com/bndr/gojenkins"
-
-	"github.com/mattermost/matterbuild/utils"
 )
 
 type JenkinsStatus struct {
@@ -28,7 +26,7 @@ func getJenkins(jenkinsUser, jenkinsToken, jenkinsURL string) (*gojenkins.Jenkin
 	return jenkins, nil
 }
 
-// Run the Jenkins job to cut the release
+// CutRelease run the Jenkins job to cut the release
 func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRelease bool,
 	isDryRun bool, legacy bool, server string, webapp string) *AppError {
 	var jobName string
@@ -72,10 +70,6 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		isDotReleaseStr = "true"
 	}
 
-	if err := RunReleasePrechecks(); err != nil {
-		return err
-	}
-
 	parameters := map[string]string{
 		"MM_VERSION":             release,
 		"MM_RC":                  rcpart,
@@ -109,31 +103,13 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 				LogInfo("Will trigger Job: " + Cfg.RCTestingJob)
 				RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease}, Cfg.CIServerJenkinsUserName, Cfg.CIServerJenkinsToken, Cfg.CIServerJenkinsURL)
 
-				//Only update OSS in odd release which is quality release, eg 5.5.0 / 5.7.0
-				releaseSplit := strings.Split(release, ".")
-				minorVersion, _ := strconv.Atoi(releaseSplit[len(releaseSplit)-2])
-				if utils.Odd(minorVersion) {
-					//Deploy to OSS Server
-					LogInfo("Deploy MM to OSS Server")
-					RunJobParameters(Cfg.OSSServerJob, map[string]string{"MM_VERSION": fullRelease}, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL)
-				}
-
-				// Only update the CI servers and pre-release if this is the latest release
+				// Only update the CI servers and community if this is the latest release
 				LogInfo("Setting CI Servers")
 				SetCIServerBranch(releaseBranch)
 
 			}
 		}
 	}()
-
-	return nil
-}
-
-func RunReleasePrechecks() *AppError {
-	if result, err := RunJobWaitForResult(Cfg.PreChecksJob, nil); err != nil || result != gojenkins.STATUS_SUCCESS {
-		LogError("[RunReleasePrechecks] Pre-checks failed! (Did you update the database upgrade code?) Result: "+result, err)
-		return NewError("Pre-checks failed! (Did you update the database upgrade code?) Result: "+result, err)
-	}
 
 	return nil
 }
@@ -294,17 +270,6 @@ func RunJobParameters(name string, parameters map[string]string, jenkinsUser, je
 		}
 	}
 
-	return nil
-}
-
-func LoadtestKube(buildTag string, length int, delay int) *AppError {
-	RunJobParameters(Cfg.KubeDeployJob, map[string]string{
-		"BUILD_TAG":           buildTag,
-		"KUBE_BRANCH":         "master",
-		"KUBE_CONFIG_FILE":    "values_loadtest.yaml",
-		"TEST_LENGTH_MINUTES": strconv.Itoa(length),
-		"PPROF_DELAY":         strconv.Itoa(delay),
-	}, Cfg.JenkinsUsername, Cfg.JenkinsPassword, Cfg.JenkinsURL)
 	return nil
 }
 

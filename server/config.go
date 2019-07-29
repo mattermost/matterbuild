@@ -26,8 +26,6 @@ type MatterbuildConfig struct {
 
 	ReleaseJob                string
 	ReleaseJobLegacy          string
-	PreChecksJob              string
-	OSSServerJob              string
 	RCTestingJob              string
 	TranslationServerJob      string
 	CheckTranslationServerJob string
