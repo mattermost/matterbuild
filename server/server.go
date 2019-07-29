@@ -442,6 +442,7 @@ func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCo
 }
 
 func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
+	LogInfo("Will run the job to get the information about the branches in the translation server")
 	result, err := RunJobWaitForResult(Cfg.CheckTranslationServerJob, map[string]string{})
 	if err != nil || result != gojenkins.STATUS_SUCCESS {
 		LogError("Translation job failed. err= " + err.Error() + " Jenkins result= " + result)
@@ -450,6 +451,7 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 		return nil
 	}
 
+	LogInfo("Will get the artificat from jenkins")
 	artifacts, err := GetJenkinsArtifacts(Cfg.CheckTranslationServerJob)
 	if err != nil {
 		return err
@@ -457,6 +459,7 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 	file := fmt.Sprintf("/tmp/%v", artifacts[0].FileName)
 	dat, _ := ioutil.ReadFile(file)
 
+	LogInfo("Results %s", string(dat))
 	tmpMsg := string(dat)
 	tmpMsg = strings.Replace(tmpMsg, "PLT_BRANCH=", "Server Branch:", -1)
 	tmpMsg = strings.Replace(tmpMsg, "WEB_BRANCH=", "Webapp Branch:", -1)
