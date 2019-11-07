@@ -28,5 +28,9 @@
       "Owner": "",
       "Name": ""
     }
-  ]
+  ],
+  "SSHKeyPath": "",
+  "SSHUser": "",
+  "SSHHost": "",
+  "GithubOrg": ""
 }
