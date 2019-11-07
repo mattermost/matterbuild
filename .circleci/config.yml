@@ -1,0 +1,25 @@
+version: 2.1
+jobs:
+  lint:
+    docker:
+      - image: circleci/golang:1.13
+    steps:
+      - checkout
+      - run: make check-style
+
+  build:
+    docker:
+      - image: circleci/golang:1.13
+    steps:
+      - checkout
+      - run: make build
+
+workflows:
+  version: 2
+  untagged-build:
+    jobs:
+      - lint
+      - build:
+          requires:
+            - lint
+
