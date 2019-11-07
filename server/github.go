@@ -298,23 +298,23 @@ func copySignedFile(baseFilename string) ([]string, error) {
 		buf := make([]byte, 1024)
 		for {
 			// read a chunk
-			n, err := fileHandler.Read(buf)
-			if err != nil && err != io.EOF {
-				panic(err)
+			n, errFile := fileHandler.Read(buf)
+			if errFile != nil && errFile != io.EOF {
+				return []string{}, errFile
 			}
 			if n == 0 {
 				break
 			}
 
-			if _, err := w.Write(buf[:n]); err != nil {
-				LogError("Error saving the signed file. err=" + err.Error())
-				return []string{}, err
+			if _, errWrite := w.Write(buf[:n]); errWrite != nil {
+				LogError("Error saving the signed file. err=" + errWrite.Error())
+				return []string{}, errWrite
 			}
 		}
 
-		if err = w.Flush(); err != nil {
-			LogError("Error flushing file. err=" + err.Error())
-			return []string{}, err
+		if errFlush := w.Flush(); errFlush != nil {
+			LogError("Error flushing file. err=" + errFlush.Error())
+			return []string{}, errFlush
 		}
 
 	}
