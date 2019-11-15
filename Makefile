@@ -32,8 +32,8 @@ gofmt:
 govet:
 	@echo Running govet
 	env GO111MODULE=off $(GO) get golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
-	$(GO) vet $(PACKAGES) || exit 1
-	$(GO) vet -vettool=$(GOPATH)/bin/shadow $(PACKAGES) || exit 1
+	$(GO) vet -mod=vendor $(PACKAGES) || exit 1
+	$(GO) vet -mod=vendor -vettool=$(GOPATH)/bin/shadow $(PACKAGES) || exit 1
 	@echo Govet success
 
 
@@ -42,7 +42,7 @@ build:
 
 	rm -rf dist/
 	mkdir -p dist/matterbuild
-	go build
+	go build -mod=vendor
 	mv matterbuild dist/matterbuild/
 	cp config.json dist/matterbuild/
 
