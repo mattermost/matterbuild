@@ -23,6 +23,11 @@ type MatterbuildConfig struct {
 	SSHUser    string
 	SSHHost    string
 
+	AWSAccessKey      string
+	AWSSecretKey      string
+	AWSRegion         string
+	AWSS3PluginBucket string
+
 	CIServerJenkinsUserName string
 	CIServerJenkinsToken    string
 	CIServerJenkinsURL      string

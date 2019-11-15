@@ -5,6 +5,7 @@ package server
 
 import (
 	"bufio"
+	// "bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -21,6 +22,11 @@ import (
 	scp "github.com/cpanato/go-scp"
 	"github.com/cpanato/go-scp/auth"
 	"github.com/eugenmayer/go-sshclient/sshwrapper"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3/s3Manager"
 )
 
 var client *github.Client
@@ -94,17 +100,18 @@ func getReleaseArtifacts(tag, repo string) error {
 	wait := 2400
 	ctxRelease, cancel := context.WithTimeout(context.Background(), time.Duration(wait)*time.Second)
 	defer cancel()
+
 	assetID, releaseID, err := checkReleaseArtifact(ctxRelease, client, repo, tag)
-	fmt.Println(assetID)
 	if err != nil {
 		return err
 	}
+
 	assetURL, err := getAssetDownloadURL(ctx, client, repo, assetID)
 	if err != nil {
 		return err
 	}
+
 	filepath, err := downloadAsset(assetURL)
-	fmt.Println(filepath)
 	if err != nil {
 		return err
 	}
@@ -126,9 +133,12 @@ func getReleaseArtifacts(tag, repo string) error {
 		return err
 	}
 
-	fmt.Println(localSignedFiles)
-
 	err = uploadSignedArtifcatsToGithub(ctx, client, repo, releaseID, localSignedFiles)
+	if err != nil {
+		return err
+	}
+
+	err = uploadSignedArtifcatsToS3(localSignedFiles)
 	if err != nil {
 		return err
 	}
@@ -172,7 +182,7 @@ func getAssetDownloadURL(ctx context.Context, githubClient *github.Client, repo 
 }
 
 func uploadSignedArtifcatsToGithub(ctx context.Context, githubClient *github.Client, repo string, releaseID int64, fileToUpload []string) error {
-	LogInfo("Uploading signed assets download to Github release")
+	LogInfo("Uploading signed assets to Github release")
 
 	for _, file := range fileToUpload {
 		opts := &github.UploadOptions{
@@ -193,6 +203,7 @@ func uploadSignedArtifcatsToGithub(ctx context.Context, githubClient *github.Cli
 		}
 	}
 
+	LogInfo("Done upload to Github")
 	return nil
 }
 
@@ -278,7 +289,6 @@ func copySignedFile(baseFilename string) ([]string, error) {
 
 		LogInfo(fmt.Sprintf("Will try to copy the remote file %s", file))
 		remoteFile := fmt.Sprintf("/opt/plugin-signer/output/%s", file)
-		fmt.Println(remoteFile)
 		fileHandler, _, err := client.CopyFromRemote(remoteFile)
 		if err != nil {
 			LogError("Error while copying the remote file. err=" + err.Error())
@@ -286,7 +296,6 @@ func copySignedFile(baseFilename string) ([]string, error) {
 		}
 
 		saveFile := fmt.Sprintf("/tmp/%s", file)
-		fmt.Println(saveFile)
 		fo, err := os.Create(saveFile)
 		defer fo.Close()
 		if err != nil {
@@ -349,5 +358,41 @@ func signAsset(filePath string) error {
 	}
 	LogInfo(stdout)
 	LogInfo("Done signing the artifact")
+	return nil
+}
+
+func uploadSignedArtifcatsToS3(fileToUpload []string) error {
+	LogInfo("Uploading signed assets to S3")
+
+	creds := credentials.NewStaticCredentials(Cfg.AWSAccessKey, Cfg.AWSSecretKey, "")
+	_, err := creds.Get()
+	if err != nil {
+		return err
+	}
+
+	cfg := aws.NewConfig().WithRegion(Cfg.AWSRegion).WithCredentials(creds)
+	sess := session.Must(session.NewSession(cfg))
+
+	for _, fileToCopy := range fileToUpload {
+		uploader := s3manager.NewUploader(sess)
+		filePath := fmt.Sprintf("/tmp/%s", fileToCopy)
+		f, err := os.Open(filePath)
+		if err != nil {
+			return fmt.Errorf("failed to open file %q, %v", filePath, err)
+		}
+		defer f.Close()
+
+		result, err := uploader.Upload(&s3manager.UploadInput{
+			Bucket: aws.String(Cfg.AWSS3PluginBucket),
+			Key:    aws.String("release/" + fileToCopy),
+			Body:   f,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to upload file, %v", err)
+		}
+		LogInfo("File uploaded to, %s\n", result.Location)
+	}
+
+	LogInfo("Done S3 upload")
 	return nil
 }

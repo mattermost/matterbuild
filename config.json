@@ -32,5 +32,9 @@
   "SSHKeyPath": "",
   "SSHUser": "",
   "SSHHost": "",
-  "GithubOrg": ""
+  "GithubOrg": "",
+  "AWSAccessKey": "",
+  "AWSSecretKey": "",
+  "AWSRegion": "",
+  "AWSS3PluginBucket": ""
 }
