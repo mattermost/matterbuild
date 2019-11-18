@@ -456,8 +456,25 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 	if err != nil {
 		return err
 	}
+
+	if len(artifacts) == 0 {
+		LogError("Artifact is empty")
+		return fmt.Errorf("Artifact is empty")
+	}
+
+	_, errSave := artifacts[0].SaveToDir("/tmp")
+	if errSave != nil {
+		LogError("Error saving the artifact to /tmp")
+		return errSave
+	}
+
+	LogInfo("Artifact - " + artifacts[0].FileName)
+
 	file := fmt.Sprintf("/tmp/%v", artifacts[0].FileName)
-	dat, _ := ioutil.ReadFile(file)
+	dat, errFile := ioutil.ReadFile(file)
+	if errFile != nil {
+		LogError("Error reading the file. err= " + errFile.Error())
+	}
 
 	LogInfo("Results %s", string(dat))
 	tmpMsg := string(dat)
