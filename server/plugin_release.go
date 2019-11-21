@@ -237,8 +237,8 @@ func downloadAsset(assetURL string) (string, error) {
 
 func copyFileToSigningServer(fileToCopy string) (string, error) {
 	LogInfo("Will copy the artifact to the signing server")
-	clientConfig, _ := auth.PrivateKey(Cfg.SSHUser, Cfg.SSHKeyPath, ssh.InsecureIgnoreHostKey())
-	host := fmt.Sprintf("%s:22", Cfg.SSHHost)
+	clientConfig, _ := auth.PrivateKey(Cfg.PluginSigningSSHUser, Cfg.PluginSigningSSHKeyPath, ssh.InsecureIgnoreHostKey())
+	host := fmt.Sprintf("%s:22", Cfg.PluginSigningSSHHost)
 
 	clientConfig.Timeout = 30 * time.Minute
 	client := scp.NewClientWithTimeout(host, &clientConfig, 30*time.Minute)
@@ -269,10 +269,10 @@ func copyFileToSigningServer(fileToCopy string) (string, error) {
 
 func copySignedFile(baseFilename string) ([]string, error) {
 	LogInfo("Will copy the signed file to upload to github")
-	clientConfig, _ := auth.PrivateKey(Cfg.SSHUser, Cfg.SSHKeyPath, ssh.InsecureIgnoreHostKey())
+	clientConfig, _ := auth.PrivateKey(Cfg.PluginSigningSSHUser, Cfg.PluginSigningSSHKeyPath, ssh.InsecureIgnoreHostKey())
 	clientConfig.Timeout = 30 * time.Minute
 
-	host := fmt.Sprintf("%s:22", Cfg.SSHHost)
+	host := fmt.Sprintf("%s:22", Cfg.PluginSigningSSHHost)
 	client := scp.NewClientWithTimeout(host, &clientConfig, 30*time.Minute)
 
 	var filesToCopy []string
@@ -334,7 +334,7 @@ func copySignedFile(baseFilename string) ([]string, error) {
 
 func signAsset(filePath string) error {
 	LogInfo("Will sign the artifact")
-	sshClient, err := sshwrapper.DefaultSshApiSetup(Cfg.SSHHost, 22, Cfg.SSHUser, Cfg.SSHKeyPath)
+	sshClient, err := sshwrapper.DefaultSshApiSetup(Cfg.PluginSigningSSHHost, 22, Cfg.PluginSigningSSHUser, Cfg.PluginSigningSSHKeyPath)
 	if err != nil {
 		LogError("Error whike setup the ssh connection. err=" + err.Error())
 		return err
@@ -364,13 +364,13 @@ func signAsset(filePath string) error {
 func uploadSignedArtifcatsToS3(fileToUpload []string) error {
 	LogInfo("Uploading signed assets to S3")
 
-	creds := credentials.NewStaticCredentials(Cfg.AWSAccessKey, Cfg.AWSSecretKey, "")
+	creds := credentials.NewStaticCredentials(Cfg.PluginSigningAWSAccessKey, Cfg.PluginSigningAWSSecretKey, "")
 	_, err := creds.Get()
 	if err != nil {
 		return err
 	}
 
-	cfg := aws.NewConfig().WithRegion(Cfg.AWSRegion).WithCredentials(creds)
+	cfg := aws.NewConfig().WithRegion(Cfg.PluginSigningAWSRegion).WithCredentials(creds)
 	sess := session.Must(session.NewSession(cfg))
 
 	for _, fileToCopy := range fileToUpload {
@@ -383,7 +383,7 @@ func uploadSignedArtifcatsToS3(fileToUpload []string) error {
 		defer f.Close()
 
 		result, err := uploader.Upload(&s3manager.UploadInput{
-			Bucket: aws.String(Cfg.AWSS3PluginBucket),
+			Bucket: aws.String(Cfg.PluginSigningAWSS3PluginBucket),
 			Key:    aws.String("release/" + fileToCopy),
 			Body:   f,
 		})

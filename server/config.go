@@ -19,14 +19,14 @@ type MatterbuildConfig struct {
 	AllowedUsers  []string
 	ReleaseUsers  []string
 
-	SSHKeyPath string
-	SSHUser    string
-	SSHHost    string
+	PluginSigningSSHKeyPath string
+	PluginSigningSSHUser    string
+	PluginSigningSSHHost    string
 
-	AWSAccessKey      string
-	AWSSecretKey      string
-	AWSRegion         string
-	AWSS3PluginBucket string
+	PluginSigningAWSAccessKey      string
+	PluginSigningAWSSecretKey      string
+	PluginSigningAWSRegion         string
+	PluginSigningAWSS3PluginBucket string
 
 	CIServerJenkinsUserName string
 	CIServerJenkinsToken    string

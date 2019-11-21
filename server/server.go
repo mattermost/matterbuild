@@ -164,7 +164,7 @@ func checkSlashPermissions(command *MMSlashCommand) *AppError {
 		return NewError("You don't have permissions to use this command.", nil)
 	}
 
-	if command.Command == "cut" {
+	if command.Command == "cut" || command.Command == "cutPlugin" {
 		hasPremissions = false
 		for _, allowedUser := range Cfg.ReleaseUsers {
 			if allowedUser == command.UserId {
