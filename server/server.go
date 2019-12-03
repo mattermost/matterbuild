@@ -404,7 +404,6 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	WriteEnrichedResponse(w, "Pluging Release Process", msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
-		time.Sleep(5 * time.Second)
 		err := getReleaseArtifacts(tag, repo)
 		msg := fmt.Sprintf("Plugin was successufully signed and the signed artifacts uploaded to Github.\n**Tag: %s**\nRepo: %s", tag, repo)
 		color := "#0060aa"

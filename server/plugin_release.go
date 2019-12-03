@@ -5,7 +5,6 @@ package server
 
 import (
 	"bufio"
-	// "bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -160,7 +159,6 @@ func checkReleaseArtifact(ctx context.Context, githubClient *github.Client, repo
 				}
 				LogInfo("Release found but no assets yet. Still waiting...")
 			}
-			LogInfo("waiting...")
 		}
 
 		select {
