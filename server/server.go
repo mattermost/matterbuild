@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/bndr/gojenkins"
 	"github.com/gorilla/schema"
