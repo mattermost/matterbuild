@@ -122,40 +122,40 @@ func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 }
 
 func checkSlashPermissions(command *MMSlashCommand) *AppError {
-	hasPremissions := false
+	hasPermissions := false
 	for _, allowedToken := range Cfg.AllowedTokens {
 		if allowedToken == command.Token {
-			hasPremissions = true
+			hasPermissions = true
 			break
 		}
 	}
 
-	if !hasPremissions {
+	if !hasPermissions {
 		return NewError("Token for slash command is incorrect", nil)
 	}
 
-	hasPremissions = false
+	hasPermissions = false
 	for _, allowedUser := range Cfg.AllowedUsers {
 		if allowedUser == command.UserId {
-			hasPremissions = true
+			hasPermissions = true
 			break
 		}
 	}
 
-	if !hasPremissions {
+	if !hasPermissions {
 		return NewError("You don't have permissions to use this command.", nil)
 	}
 
 	if command.Command == "cut" {
-		hasPremissions = false
+		hasPermissions = false
 		for _, allowedUser := range Cfg.ReleaseUsers {
 			if allowedUser == command.UserId {
-				hasPremissions = true
+				hasPermissions = true
 				break
 			}
 		}
 
-		if !hasPremissions {
+		if !hasPermissions {
 			return NewError("You don't have permissions to use this command.", nil)
 		}
 	}
