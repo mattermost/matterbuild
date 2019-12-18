@@ -118,11 +118,11 @@ func getJob(name, jenkinsUser, jenkinsToken, jenkinsURL string) (*gojenkins.Job,
 	jenkins, err := getJenkins(jenkinsUser, jenkinsToken, jenkinsURL)
 
 	if err != nil {
-		LogError("[getJob] Unable to get Jenkins err=" + err.Error())
+		LogError("[getJob] Unable to get Jenkins. err=" + err.Error())
 		return nil, err
 	}
 
-	LogInfo("[getJob] Job Name " + name)
+	LogInfo("[getJob] Job Name: " + name)
 	if job, err := jenkins.GetJob(name); err != nil {
 		LogError("[getJob] Unable to get job: " + name + " err=" + err.Error())
 		return nil, NewError("Unable to get job", err)

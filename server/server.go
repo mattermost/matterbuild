@@ -139,27 +139,27 @@ func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 }
 
 func checkSlashPermissions(command *MMSlashCommand) *AppError {
-	hasPremissions := false
+	hasPermissions := false
 	for _, allowedToken := range Cfg.AllowedTokens {
 		if allowedToken == command.Token {
-			hasPremissions = true
+			hasPermissions = true
 			break
 		}
 	}
 
-	if !hasPremissions {
+	if !hasPermissions {
 		return NewError("Token for slash command is incorrect", nil)
 	}
 
-	hasPremissions = false
+	hasPermissions = false
 	for _, allowedUser := range Cfg.AllowedUsers {
 		if allowedUser == command.UserId {
-			hasPremissions = true
+			hasPermissions = true
 			break
 		}
 	}
 
-	if !hasPremissions {
+	if !hasPermissions {
 		return NewError("You don't have permissions to use this command.", nil)
 	}
 
@@ -167,12 +167,12 @@ func checkSlashPermissions(command *MMSlashCommand) *AppError {
 		hasPremissions = false
 		for _, allowedUser := range Cfg.ReleaseUsers {
 			if allowedUser == command.UserId {
-				hasPremissions = true
+				hasPermissions = true
 				break
 			}
 		}
 
-		if !hasPremissions {
+		if !hasPermissions {
 			return NewError("You don't have permissions to use this command.", nil)
 		}
 	}
@@ -532,8 +532,25 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 	if err != nil {
 		return err
 	}
+
+	if len(artifacts) == 0 {
+		LogError("Artifact is empty")
+		return fmt.Errorf("Artifact is empty")
+	}
+
+	_, errSave := artifacts[0].SaveToDir("/tmp")
+	if errSave != nil {
+		LogError("Error saving the artifact to /tmp")
+		return errSave
+	}
+
+	LogInfo("Artifact - " + artifacts[0].FileName)
+
 	file := fmt.Sprintf("/tmp/%v", artifacts[0].FileName)
-	dat, _ := ioutil.ReadFile(file)
+	dat, errFile := ioutil.ReadFile(file)
+	if errFile != nil {
+		LogError("Error reading the file. err= " + errFile.Error())
+	}
 
 	LogInfo("Results %s", string(dat))
 	tmpMsg := string(dat)

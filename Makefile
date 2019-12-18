@@ -1,6 +1,11 @@
 GO ?= $(shell command -v go 2> /dev/null)
+DEP ?= $(shell command -v dep 2> /dev/null)
 
 PACKAGES=$(shell go list ./...)
+
+## Checks the code style, tests, builds and bundles the plugin.
+.PHONY: all
+all: check-style test
 
 ## Runs govet and gofmt against all packages.
 .PHONY: check-style
