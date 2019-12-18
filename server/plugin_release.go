@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strings"
@@ -110,12 +111,15 @@ func getReleaseArtifacts(tag, repo string) error {
 		return err
 	}
 
-	filepath, err := downloadAsset(assetURL)
+	tempFolder, _ := ioutil.TempDir("/tmp", repo)
+	defer os.RemoveAll(tempFolder)
+
+	filepath, err := downloadAsset(assetURL, tempFolder)
 	if err != nil {
 		return err
 	}
 
-	fileServerPath, err := copyFileToSigningServer(filepath)
+	fileServerPath, err := copyFileToSigningServer(filepath, tempFolder)
 	if err != nil {
 		return err
 	}
@@ -127,17 +131,17 @@ func getReleaseArtifacts(tag, repo string) error {
 
 	filename := strings.Split(filepath, "/")
 	baseFilename := filename[len(filename)-1]
-	localSignedFiles, err := copySignedFile(baseFilename)
+	localSignedFiles, err := copySignedFile(baseFilename, tempFolder)
 	if err != nil {
 		return err
 	}
 
-	err = uploadSignedArtifcatsToGithub(ctx, client, repo, releaseID, localSignedFiles)
+	err = uploadSignedArtifcatsToGithub(ctx, client, repo, releaseID, tempFolder, localSignedFiles)
 	if err != nil {
 		return err
 	}
 
-	err = uploadSignedArtifcatsToS3(localSignedFiles)
+	err = uploadSignedArtifcatsToS3(localSignedFiles, tempFolder)
 	if err != nil {
 		return err
 	}
@@ -179,7 +183,7 @@ func getAssetDownloadURL(ctx context.Context, githubClient *github.Client, repo 
 	return releaseAsset.GetBrowserDownloadURL(), nil
 }
 
-func uploadSignedArtifcatsToGithub(ctx context.Context, githubClient *github.Client, repo string, releaseID int64, fileToUpload []string) error {
+func uploadSignedArtifcatsToGithub(ctx context.Context, githubClient *github.Client, repo string, releaseID int64, tempFolder string, fileToUpload []string) error {
 	LogInfo("Uploading signed assets to Github release")
 
 	for _, file := range fileToUpload {
@@ -187,7 +191,7 @@ func uploadSignedArtifcatsToGithub(ctx context.Context, githubClient *github.Cli
 			Name: file,
 		}
 
-		filePath := fmt.Sprintf("/tmp/%s", file)
+		filePath := fmt.Sprintf("/%s/%s", tempFolder, file)
 		fileHandler, err := os.Open(filePath)
 		defer fileHandler.Close()
 		if err != nil {
@@ -205,7 +209,7 @@ func uploadSignedArtifcatsToGithub(ctx context.Context, githubClient *github.Cli
 	return nil
 }
 
-func downloadAsset(assetURL string) (string, error) {
+func downloadAsset(assetURL, tempFolder string) (string, error) {
 	LogInfo("Will download the github release asset")
 	url := strings.Split(assetURL, "/")
 	filename := url[len(url)-1]
@@ -217,7 +221,7 @@ func downloadAsset(assetURL string) (string, error) {
 	defer resp.Body.Close()
 
 	// Create the file
-	filepath := fmt.Sprintf("/tmp/%s", filename)
+	filepath := fmt.Sprintf("/%s/%s", tempFolder, filename)
 	out, err := os.Create(filepath)
 	if err != nil {
 		return "", err
@@ -233,7 +237,7 @@ func downloadAsset(assetURL string) (string, error) {
 	return filepath, nil
 }
 
-func copyFileToSigningServer(fileToCopy string) (string, error) {
+func copyFileToSigningServer(fileToCopy, tempFolder string) (string, error) {
 	LogInfo("Will copy the artifact to the signing server")
 	clientConfig, _ := auth.PrivateKey(Cfg.PluginSigningSSHUser, Cfg.PluginSigningSSHKeyPath, ssh.InsecureIgnoreHostKey())
 	host := fmt.Sprintf("%s:22", Cfg.PluginSigningSSHHost)
@@ -252,7 +256,7 @@ func copyFileToSigningServer(fileToCopy string) (string, error) {
 	defer f.Close()
 
 	filename := strings.Split(fileToCopy, "/")
-	serverPath := fmt.Sprintf("/tmp/%s", filename[len(filename)-1])
+	serverPath := fmt.Sprintf("/%s/%s", tempFolder, filename[len(filename)-1])
 	LogInfo(serverPath)
 	err = client.CopyFile(f, serverPath, "0777")
 
@@ -265,7 +269,7 @@ func copyFileToSigningServer(fileToCopy string) (string, error) {
 	return serverPath, nil
 }
 
-func copySignedFile(baseFilename string) ([]string, error) {
+func copySignedFile(baseFilename, tempFolder string) ([]string, error) {
 	LogInfo("Will copy the signed file to upload to github")
 	clientConfig, _ := auth.PrivateKey(Cfg.PluginSigningSSHUser, Cfg.PluginSigningSSHKeyPath, ssh.InsecureIgnoreHostKey())
 	clientConfig.Timeout = 30 * time.Minute
@@ -293,7 +297,7 @@ func copySignedFile(baseFilename string) ([]string, error) {
 			return []string{}, err
 		}
 
-		saveFile := fmt.Sprintf("/tmp/%s", file)
+		saveFile := fmt.Sprintf("/%s/%s", tempFolder, file)
 		fo, err := os.Create(saveFile)
 		defer fo.Close()
 		if err != nil {
@@ -359,7 +363,7 @@ func signAsset(filePath string) error {
 	return nil
 }
 
-func uploadSignedArtifcatsToS3(fileToUpload []string) error {
+func uploadSignedArtifcatsToS3(fileToUpload []string, tempFolder string) error {
 	LogInfo("Uploading signed assets to S3")
 
 	creds := credentials.NewStaticCredentials(Cfg.PluginSigningAWSAccessKey, Cfg.PluginSigningAWSSecretKey, "")
@@ -373,7 +377,7 @@ func uploadSignedArtifcatsToS3(fileToUpload []string) error {
 
 	for _, fileToCopy := range fileToUpload {
 		uploader := s3manager.NewUploader(sess)
-		filePath := fmt.Sprintf("/tmp/%s", fileToCopy)
+		filePath := fmt.Sprintf("/%s/%s", tempFolder, fileToCopy)
 		f, err := os.Open(filePath)
 		if err != nil {
 			return fmt.Errorf("failed to open file %q, %v", filePath, err)
