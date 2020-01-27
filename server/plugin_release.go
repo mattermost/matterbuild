@@ -112,7 +112,6 @@ func getReleaseArtifacts(tag, repo string) error {
 	}
 
 	tempFolder, _ := ioutil.TempDir("/tmp", repo)
-	defer os.RemoveAll(tempFolder)
 
 	filepath, err := downloadAsset(assetURL, tempFolder)
 	if err != nil {
