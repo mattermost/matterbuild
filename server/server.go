@@ -35,6 +35,7 @@ type MMSlashCommand struct {
 	Token       string `schema:"token"`
 	UserId      string `schema:"user_id"`
 	Username    string `schema:"user_name"`
+	ResponseUrl string `schema:"response_url"`
 }
 
 type AppError struct {
@@ -84,7 +85,23 @@ func WriteResponse(w http.ResponseWriter, resp string, style string) {
 func WriteEnrichedResponse(w http.ResponseWriter, title, resp, color, style string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(GenerateEnrichedSlashResponse(title, resp, color, style)))
+	w.Write(GenerateEnrichedSlashResponse(title, resp, color, style))
+}
+
+func PostExtraMessages(responseURL string, payload []byte) error {
+	req, err := http.NewRequest("POST", responseURL, bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	_, err = client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ParseSlashCommand(r *http.Request) (*MMSlashCommand, error) {
@@ -146,7 +163,7 @@ func checkSlashPermissions(command *MMSlashCommand) *AppError {
 		return NewError("You don't have permissions to use this command.", nil)
 	}
 
-	if command.Command == "cut" {
+	if command.Command == "cut" || command.Command == "cutPlugin" {
 		hasPermissions = false
 		for _, allowedUser := range Cfg.ReleaseUsers {
 			if allowedUser == command.UserId {
@@ -210,6 +227,19 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
+	var cutPluginCmd = &cobra.Command{
+		Use:   "cutPlugin [--tag] [--repo]",
+		Short: "Cut a release of any plugin under Mattermost Organization",
+		Long:  "Cut a release of any plugin under Mattermost Organization.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			tag, _ := cmd.Flags().GetString("tag")
+			repo, _ := cmd.Flags().GetString("repo")
+			return cutPluginCommandF(w, command, tag, repo)
+		},
+	}
+	cutPluginCmd.Flags().String("tag", "", "Set this flag for the tag you want to release.")
+	cutPluginCmd.Flags().String("repo", "", "Set this flag for the plugin repository.")
+
 	var setCIBranchCmd = &cobra.Command{
 		Use:   "setci",
 		Short: "Set the branch target for the CI servers.",
@@ -261,7 +291,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
 
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd)
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd)
 
 	err = rootCmd.Execute()
 
@@ -338,6 +368,52 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", IN_CHANNEL)
 	}
 	return nil
+}
+
+func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag, repo string) error {
+	var pluginTag = regexp.MustCompile("v[0-9]+.[0-9]+.[0-9]+$")
+	if tag == "" {
+		WriteErrorResponse(w, NewError("Tag should not be empty", nil))
+		return nil
+	}
+	if !pluginTag.MatchString(tag) {
+		msg := fmt.Sprintf("Bad tag. maybe a typo? you set this tag %s but we expected something like v2.3.4", tag)
+		WriteErrorResponse(w, NewError(msg, nil))
+		return nil
+	}
+
+	if repo == "" {
+		WriteErrorResponse(w, NewError("Plugin Repository should not be empty", nil))
+		return nil
+	}
+
+	err := checkRepo(repo)
+	if err != nil {
+		WriteErrorResponse(w, NewError(err.Error(), nil))
+		return nil
+	}
+
+	err = createTag(tag, repo)
+	if err != nil {
+		WriteErrorResponse(w, NewError(err.Error(), nil))
+		return nil
+	}
+
+	msg := fmt.Sprintf("Tag %s created. Waiting for the artifacts to sign and publish.\nWill post here when all is complete or any error happens.\nTake a :coffee:", tag)
+	WriteEnrichedResponse(w, "Pluging Release Process", msg, "#0060aa", IN_CHANNEL)
+
+	go func() {
+		err := getReleaseArtifacts(tag, repo)
+		msg := fmt.Sprintf("Plugin was successufully signed and the signed artifacts uploaded to Github.\n**Tag: %s**\nRepo: %s", tag, repo)
+		color := "#0060aa"
+		if err != nil {
+			msg = fmt.Sprintf("Error while signing the plugin\nError: %s", err.Error())
+			color = "#fc081c"
+		}
+		PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Pluging Release Process", msg, color, IN_CHANNEL))
+	}()
+	return nil
+
 }
 
 func configDumpCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {

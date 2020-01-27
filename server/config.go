@@ -19,6 +19,15 @@ type MatterbuildConfig struct {
 	AllowedUsers  []string
 	ReleaseUsers  []string
 
+	PluginSigningSSHKeyPath string
+	PluginSigningSSHUser    string
+	PluginSigningSSHHost    string
+
+	PluginSigningAWSAccessKey      string
+	PluginSigningAWSSecretKey      string
+	PluginSigningAWSRegion         string
+	PluginSigningAWSS3PluginBucket string
+
 	CIServerJenkinsUserName string
 	CIServerJenkinsToken    string
 	CIServerJenkinsURL      string
@@ -31,6 +40,7 @@ type MatterbuildConfig struct {
 	CheckTranslationServerJob string
 	GithubAccessToken         string
 	GithubUsername            string
+	GithubOrg                 string
 	Repositories              []*Repository
 
 	KubeDeployJob string
