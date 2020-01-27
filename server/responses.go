@@ -58,7 +58,7 @@ func GenerateStandardSlashResponse(text string, respType string) string {
 	return string(b)
 }
 
-func GenerateEnrichedSlashResponse(title, text, color, respType string) string {
+func GenerateEnrichedSlashResponse(title, text, color, respType string) []byte {
 	msgAttachment := &[]Attachment{{
 		Fallback:   text,
 		Color:      color,
@@ -80,8 +80,8 @@ func GenerateEnrichedSlashResponse(title, text, color, respType string) string {
 	b, err := json.Marshal(response)
 	if err != nil {
 		LogError("Unable to marshal response")
-		return ""
+		return nil
 	}
 
-	return string(b)
+	return b
 }

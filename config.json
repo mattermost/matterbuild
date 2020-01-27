@@ -28,5 +28,13 @@
       "Owner": "",
       "Name": ""
     }
-  ]
+  ],
+  "SSHKeyPath": "",
+  "SSHUser": "",
+  "SSHHost": "",
+  "GithubOrg": "",
+  "PluginSigningAWSAccessKey": "",
+  "PluginSigningAWSSecretKey": "",
+  "PluginSigningAWSRegion": "",
+  "PluginSigningAWSS3PluginBucket": ""
 }
