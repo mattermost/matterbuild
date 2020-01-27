@@ -43,7 +43,7 @@ govet:
 
 
 test:
-	$(GO) test -v -race ./...
+	$(GO) test -mod=vendor -v -race ./...
 
 build:
 	@echo Building
