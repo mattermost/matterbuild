@@ -255,7 +255,7 @@ func copyFileToSigningServer(fileToCopy, tempFolder string) (string, error) {
 	defer f.Close()
 
 	filename := strings.Split(fileToCopy, "/")
-	serverPath := fmt.Sprintf("/%s/%s", tempFolder, filename[len(filename)-1])
+	serverPath := fmt.Sprintf("%s/%s", tempFolder, filename[len(filename)-1])
 	LogInfo(serverPath)
 	err = client.CopyFile(f, serverPath, "0777")
 
