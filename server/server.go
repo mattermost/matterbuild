@@ -404,7 +404,18 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 
 	go func() {
 		err := getReleaseArtifacts(tag, repo)
-		msg := fmt.Sprintf("Plugin was successufully signed and the signed artifacts uploaded to Github.\n**Tag: %s**\nRepo: %s", tag, repo)
+
+		marketplaceCommand := fmt.Sprintf(`
+git checkout master
+git pull
+git checkout -b bump_%[1]s-%[2]s
+make plugins.json
+make generate
+git commit plugins.json data/statik/statik.go -m "Bump version of %[1]s to %[2]s"
+git push --set-upstream origin bump_%[1]s-%[2]s
+git checkout master
+`, repo, tag)
+		msg = fmt.Sprintf("Plugin was successfully signed and the signed artifacts uploaded to Github.\nTag: **%s**\nRepo: **%s**\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```", tag, repo, marketplaceCommand)
 		color := "#0060aa"
 		if err != nil {
 			msg = fmt.Sprintf("Error while signing the plugin\nError: %s", err.Error())
