@@ -3,9 +3,9 @@ DEP ?= $(shell command -v dep 2> /dev/null)
 
 PACKAGES=$(shell go list ./...)
 
-## Checks the code style, tests, builds and bundles the plugin.
+## Checks the code style, tests and builds
 .PHONY: all
-all: check-style test
+all: check-style test build
 
 ## Runs govet and gofmt against all packages.
 .PHONY: check-style
@@ -42,12 +42,15 @@ govet:
 	@echo Govet success
 
 
+test:
+	$(GO) test -mod=vendor -v -race ./...
+
 build:
 	@echo Building
 
 	rm -rf dist/
 	mkdir -p dist/matterbuild
-	go build -mod=vendor
+	$(GO) build -mod=vendor
 	mv matterbuild dist/matterbuild/
 	cp config.json dist/matterbuild/
 
