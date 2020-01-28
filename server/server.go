@@ -410,7 +410,8 @@ git checkout master
 git pull
 git checkout -b bump_%[1]s-%[2]s
 make plugins.json
-git commit plugins.json -m "Bump version of %[1]s to %[2]s"
+make generate
+git commit plugins.json data/statik/statik.go -m "Bump version of %[1]s to %[2]s"
 git push --set-upstream origin bump_%[1]s-%[2]s
 git checkout master
 `, repo, tag)
