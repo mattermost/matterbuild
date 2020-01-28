@@ -7,6 +7,13 @@ jobs:
       - checkout
       - run: make check-style
 
+  test:
+    docker:
+      - image: circleci/golang:1.13
+    steps:
+      - checkout
+      - run: make test
+
   build:
     docker:
       - image: circleci/golang:1.13
@@ -19,6 +26,7 @@ workflows:
   untagged-build:
     jobs:
       - lint
+      - test
       - build:
           requires:
             - lint
