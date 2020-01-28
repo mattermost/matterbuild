@@ -278,7 +278,6 @@ func copySignedFile(baseFilename, tempFolder string) ([]string, error) {
 
 	var filesToCopy []string
 	filesToCopy = append(filesToCopy, fmt.Sprintf("%s.sig", baseFilename))
-	filesToCopy = append(filesToCopy, fmt.Sprintf("%s.asc", baseFilename))
 
 	for _, file := range filesToCopy {
 		err := client.Connect()
