@@ -19,7 +19,7 @@ func TestCreatePlatformPlugins(t *testing.T) {
 		defer os.RemoveAll(tmpFolder)
 
 		platformPluginFilePaths, err := createPlatformPlugins("myrepo", "mytag", "invalid", tmpFolder)
-		require.NoError(t, err)
+		require.Error(t, err)
 		require.Nil(t, platformPluginFilePaths)
 	})
 
