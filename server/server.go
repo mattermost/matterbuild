@@ -397,7 +397,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	msg := fmt.Sprintf("Tag %s created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", tag)
 	if err := createTag(Cfg, Cfg.GithubOrg, tag, repo); err == ErrTagExists {
 		if !force {
-			WriteErrorResponse(w, NewError(fmt.Errorf("Tag %s already exists", tag).Error(), nil))
+			WriteErrorResponse(w, NewError(fmt.Errorf("Tag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", tag).Error(), nil))
 			return nil
 		}
 		msg = fmt.Sprintf("Tag %s exists. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", tag)
