@@ -30,3 +30,4 @@ workflows:
       - build:
           requires:
             - lint
+            - test

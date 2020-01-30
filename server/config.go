@@ -19,9 +19,10 @@ type MatterbuildConfig struct {
 	AllowedUsers  []string
 	ReleaseUsers  []string
 
-	PluginSigningSSHKeyPath string
-	PluginSigningSSHUser    string
-	PluginSigningSSHHost    string
+	PluginSigningSSHPublicCertPath string // Used for local development
+	PluginSigningSSHKeyPath        string
+	PluginSigningSSHUser           string
+	PluginSigningSSHHost           string
 
 	PluginSigningAWSAccessKey      string
 	PluginSigningAWSSecretKey      string

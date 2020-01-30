@@ -130,8 +130,9 @@ func Start() {
 	router.POST("/slash_command", slashCommandHandler)
 
 	LogInfo("Running Matterbuild on port " + Cfg.ListenAddress)
-	http.ListenAndServe(Cfg.ListenAddress, router)
-
+	if err := http.ListenAndServe(Cfg.ListenAddress, router); err != nil {
+		LogError(err.Error())
+	}
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -228,17 +229,19 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	}
 
 	var cutPluginCmd = &cobra.Command{
-		Use:   "cutPlugin [--tag] [--repo]",
+		Use:   "cutPlugin [--tag] [--repo] [--force]",
 		Short: "Cut a release of any plugin under Mattermost Organization",
 		Long:  "Cut a release of any plugin under Mattermost Organization.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tag, _ := cmd.Flags().GetString("tag")
 			repo, _ := cmd.Flags().GetString("repo")
-			return cutPluginCommandF(w, command, tag, repo)
+			force, _ := cmd.Flags().GetBool("force")
+			return cutPluginCommandF(w, command, tag, repo, force)
 		},
 	}
 	cutPluginCmd.Flags().String("tag", "", "Set this flag for the tag you want to release.")
 	cutPluginCmd.Flags().String("repo", "", "Set this flag for the plugin repository.")
+	cutPluginCmd.Flags().Bool("force", false, "Set this flag to regenerate assets for a given repository.")
 
 	var setCIBranchCmd = &cobra.Command{
 		Use:   "setci",
@@ -298,7 +301,6 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	if err != nil || len(outBuf.String()) > 0 {
 		WriteEnrichedResponse(w, "Information", outBuf.String(), "#0060aa", EPHEMERAL)
 	}
-	return
 }
 
 var finalVersionRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+$")
@@ -370,8 +372,8 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 	return nil
 }
 
-func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag, repo string) error {
-	var pluginTag = regexp.MustCompile("v[0-9]+.[0-9]+.[0-9]+$")
+func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag, repo string, force bool) error {
+	pluginTag := regexp.MustCompile("v[0-9]+.[0-9]+.[0-9]+$")
 	if tag == "" {
 		WriteErrorResponse(w, NewError("Tag should not be empty", nil))
 		return nil
@@ -387,24 +389,26 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
-	err := checkRepo(repo)
-	if err != nil {
+	if err := checkRepo(Cfg, Cfg.GithubOrg, repo); err != nil {
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
 	}
 
-	err = createTag(tag, repo)
-	if err != nil {
+	msg := fmt.Sprintf("Tag %s created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab a :coffee: and a :doughnut: ", tag)
+	if err := createTag(Cfg, Cfg.GithubOrg, tag, repo); err == ErrTagExists {
+		if !force {
+			WriteErrorResponse(w, NewError(fmt.Errorf("Tag %s already exists", tag).Error(), nil))
+			return nil
+		}
+		msg = fmt.Sprintf("Tag %s exists. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab a :coffee: and a :doughnut: ", tag)
+	} else if err != nil {
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
 	}
 
-	msg := fmt.Sprintf("Tag %s created. Waiting for the artifacts to sign and publish.\nWill post here when all is complete or any error happens.\nTake a :coffee:", tag)
 	WriteEnrichedResponse(w, "Pluging Release Process", msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
-		err := getReleaseArtifacts(tag, repo)
-
 		marketplaceCommand := fmt.Sprintf(`
 git checkout master
 git pull
@@ -415,10 +419,11 @@ git commit plugins.json data/statik/statik.go -m "Bump version of %[1]s to %[2]s
 git push --set-upstream origin bump_%[1]s-%[2]s
 git checkout master
 `, repo, tag)
-		msg = fmt.Sprintf("Plugin was successfully signed and the signed artifacts uploaded to Github.\nTag: **%s**\nRepo: **%s**\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```", tag, repo, marketplaceCommand)
+		msg = fmt.Sprintf("Plugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```", tag, repo, marketplaceCommand)
 		color := "#0060aa"
-		if err != nil {
-			msg = fmt.Sprintf("Error while signing the plugin\nError: %s", err.Error())
+		if err := cutPlugin(Cfg, Cfg.GithubOrg, repo, tag); err != nil {
+			LogError("failed to cutPlugin %s", err.Error())
+			msg = fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			color = "#fc081c"
 		}
 		PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Pluging Release Process", msg, color, IN_CHANNEL))

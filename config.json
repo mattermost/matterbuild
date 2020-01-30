@@ -1,5 +1,5 @@
 {
-    "ListenAddress": "",
+    "ListenAddress": ":5001",
     "JenkinsURL": "",
     "JenkinsUsername": "",
     "JenkinsPassword": "",
@@ -29,9 +29,10 @@
       "Name": ""
     }
   ],
-  "SSHKeyPath": "",
-  "SSHUser": "",
-  "SSHHost": "",
+  "PluginSigningSSHPublicCertPath": "",
+  "PluginSigningSSHKeyPath": "",
+  "PluginSigningSSHUser": "",
+  "PluginSigningSSHHost": "",
   "GithubOrg": "",
   "PluginSigningAWSAccessKey": "",
   "PluginSigningAWSSecretKey": "",
