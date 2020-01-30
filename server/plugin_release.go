@@ -364,9 +364,9 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 	}
 
 	platformFileExclusion := map[string][]string{
-		"osx-amd64":     []string{"windows", "linux"},
-		"windows-amd64": []string{"darwin", "linux"},
-		"linux-amd64":   []string{"darwin", "windows"},
+		"osx-amd64":     {"windows", "linux"},
+		"windows-amd64": {"darwin", "linux"},
+		"linux-amd64":   {"darwin", "windows"},
 	}
 
 	platformFileInclusion := map[string]string{
