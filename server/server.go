@@ -409,6 +409,24 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	WriteEnrichedResponse(w, "Pluging Release Process", msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
+		if err := cutPlugin(Cfg, Cfg.GithubOrg, repo, tag); err != nil {
+			LogError("failed to cutPlugin %s", err.Error())
+			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
+			errColor := "#fc081c"
+			if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Pluging Release Process", errMsg, errColor, IN_CHANNEL)); err != nil {
+				LogError("failed to post err through PostExtraMessages err=%s", err.Error())
+			}
+			return
+		}
+
+		// Get release link if possible
+		releaseURL := ""
+		if release, err := getReleaseByTag(Cfg, Cfg.GithubOrg, repo, tag); err != nil {
+			LogError("failed to get release by tag after err=%s", err.Error())
+		} else {
+			releaseURL = release.GetHTMLURL()
+		}
+
 		marketplaceCommand := fmt.Sprintf(`
 git checkout master
 git pull
@@ -419,14 +437,11 @@ git commit plugins.json data/statik/statik.go -m "Bump version of %[1]s to %[2]s
 git push --set-upstream origin bump_%[1]s-%[2]s
 git checkout master
 `, repo, tag)
-		msg = fmt.Sprintf("Plugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```", tag, repo, marketplaceCommand)
+		msg = fmt.Sprintf("Plugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```", tag, repo, releaseURL, marketplaceCommand)
 		color := "#0060aa"
-		if err := cutPlugin(Cfg, Cfg.GithubOrg, repo, tag); err != nil {
-			LogError("failed to cutPlugin %s", err.Error())
-			msg = fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
-			color = "#fc081c"
+		if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Pluging Release Process", msg, color, IN_CHANNEL)); err != nil {
+			LogError("failed to post success msg through PostExtraMessages err=%s", err.Error())
 		}
-		PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Pluging Release Process", msg, color, IN_CHANNEL))
 	}()
 	return nil
 

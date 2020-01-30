@@ -119,6 +119,21 @@ func checkRepo(cfg *MatterbuildConfig, owner, repo string) error {
 	return nil
 }
 
+// getReleaseByTag gets github release by tag.
+func getReleaseByTag(cfg *MatterbuildConfig, owner, repositoryName, tag string) (*github.RepositoryRelease, error) {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.GithubAccessToken})
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+
+	release, _, err := client.Repositories.GetReleaseByTag(ctx, owner, repositoryName, tag)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get release by tag err=%w", err)
+	}
+
+	return release, nil
+}
+
 // createTag creates a new tag at master for repo.
 // Returns ErrTagExists if tag already exists, nil if successful and an error otherwise.
 func createTag(cfg *MatterbuildConfig, owner, tag, repository string) error {
