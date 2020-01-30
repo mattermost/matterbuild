@@ -408,13 +408,13 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		marketplaceCommand := fmt.Sprintf(`
 git checkout master
 git pull
-git checkout -b bump_%[1]s-%[2]s
+git checkout -b add_%[1]s_%[2]s
 make plugins.json
 make generate
-git commit plugins.json data/statik/statik.go -m "Bump version of %[1]s to %[2]s"
-git push --set-upstream origin bump_%[1]s-%[2]s
+git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Marketplace"
+git push --set-upstream origin add_%[1]s_%[2]s
 git checkout master
-`, repo, tag)
+`, tag, repo)
 		msg = fmt.Sprintf("Plugin was successfully signed and the signed artifacts uploaded to Github.\nTag: **%s**\nRepo: **%s**\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```", tag, repo, marketplaceCommand)
 		color := "#0060aa"
 		if err != nil {
