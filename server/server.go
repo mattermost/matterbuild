@@ -405,17 +405,19 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	go func() {
 		err := getReleaseArtifacts(tag, repo)
 
+		branch := fmt.Sprintf("add_%s_%s", repo, tag)
 		marketplaceCommand := fmt.Sprintf(`
-git checkout master
+git checkout production
 git pull
-git checkout -b add_%[1]s_%[2]s
+git checkout -b %[3]s
 make plugins.json
 make generate
 git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Marketplace"
-git push --set-upstream origin add_%[1]s_%[2]s
+git push --set-upstream origin %[3]s
 git checkout master
-`, tag, repo)
-		msg = fmt.Sprintf("Plugin was successfully signed and the signed artifacts uploaded to Github.\nTag: **%s**\nRepo: **%s**\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```", tag, repo, marketplaceCommand)
+`, tag, repo, branch)
+		url := fmt.Sprintf("https://github.com/mattermost/mattermost-marketplace/compare/production...%s?quick_pull=1&labels=1:+UX+Review,2:+Dev+Review", branch)
+		msg = fmt.Sprintf("Plugin was successfully signed and the signed artifacts uploaded to Github.\nTag: **%s**\nRepo: **%s**\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.", tag, repo, marketplaceCommand, url)
 		color := "#0060aa"
 		if err != nil {
 			msg = fmt.Sprintf("Error while signing the plugin\nError: %s", err.Error())
