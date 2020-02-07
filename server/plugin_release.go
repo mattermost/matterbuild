@@ -128,8 +128,9 @@ func getReleaseByTag(ctx context.Context, client *github.Client, owner, reposito
 func createTag(ctx context.Context, client *github.Client, owner, tag, repository string) error {
 	refs, _, err := client.Git.GetRefs(ctx, owner, repository, fmt.Sprintf("tags/%s", tag))
 	if err != nil {
-		if gErr, ok := err.(*github.ErrorResponse); !ok || gErr.Response.StatusCode != http.StatusNotFound {
-			return err
+		var gerr *github.ErrorResponse
+		if !errors.As(err, &gerr) || gerr.Response.StatusCode != http.StatusNotFound {
+			return errors.Wrapf(err, "failed to get github tag")
 		}
 
 		LogInfo("tag %s was not found, creating tag", tag)
@@ -144,7 +145,7 @@ func createTag(ctx context.Context, client *github.Client, owner, tag, repositor
 
 	tags := &github.Tag{
 		Tag:     github.String(tag),
-		Message: github.String(fmt.Sprintf("Tag %s", tag)),
+		Message: github.String(tag),
 		Object:  ref.Object,
 	}
 
@@ -215,7 +216,7 @@ func copyFilesFromRemoteServer(cfg *MatterbuildConfig, remoteFiles []string, plu
 		defer srcFile.Close()
 
 		destination := filepath.Join(pluginFolder, filepath.Base(remoteFile))
-		LogInfo("%s -> %s", remoteFile, destination)
+		LogInfo("copying %s -> %s", remoteFile, destination)
 		dstFile, err := os.Create(destination)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create file %s,", destination)
@@ -249,7 +250,7 @@ func copyFilesToRemoteServer(cfg *MatterbuildConfig, filePaths []string) ([]stri
 		defer f.Close()
 
 		serverPath := filepath.Join("/tmp", filepath.Base(filePath))
-		LogInfo("%s -> %s", filePath, serverPath)
+		LogInfo("copying %s -> %s", filePath, serverPath)
 
 		// Open the source file
 		srcFile, err := sftp.Create(serverPath)
@@ -299,7 +300,7 @@ func signFilesOnRemoteServer(cfg *MatterbuildConfig, remoteFilePaths []string) (
 		return nil, errors.Wrapf(err, "failed to setup client config")
 	}
 	sshClient := sshwrapper.NewSshApi(cfg.PluginSigningSSHHost, 22, cfg.PluginSigningSSHUser, cfg.PluginSigningSSHKeyPath)
-	sshClient.SshConfig = &clientConfig
+	sshClient.SshConfig = clientConfig
 
 	for _, remoteFilePath := range remoteFilePaths {
 		LogInfo("Signing " + remoteFilePath)
@@ -406,7 +407,7 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 }
 
 func downloadAsset(ctx context.Context, asset *github.ReleaseAsset, folder string) (filePath string, err error) {
-	LogInfo("Downloading the github release asset")
+	LogInfo("Downloading github release asset")
 
 	// Get the data
 	resp, err := http.Get(asset.GetBrowserDownloadURL())
@@ -429,6 +430,7 @@ func downloadAsset(ctx context.Context, asset *github.ReleaseAsset, folder strin
 		return "", nil
 	}
 
+	LogInfo("Done downloading")
 	return pathToFile, nil
 }
 
@@ -446,27 +448,28 @@ func getPluginAsset(ctx context.Context, githubClient *github.Client, owner, rep
 
 		release, _, err := githubClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
 		if err != nil {
-			if err, ok := err.(*github.ErrorResponse); ok && err.Response.StatusCode == http.StatusNotFound {
-				LogInfo("get release by tag %s was not found, trying again shortly", tag)
-			} else {
+			var gerr *github.ErrorResponse
+			if !errors.As(err, &gerr) || gerr.Response.StatusCode != http.StatusNotFound {
 				return nil, errors.Wrapf(err, "failed to get release by tag")
 			}
+
+			LogInfo("get release by tag %s was not found, trying again shortly", tag)
 		}
 
 		if release != nil {
-			var pluginAsset *github.ReleaseAsset
+			var foundPluginAsset *github.ReleaseAsset
 			for i := range release.Assets {
 				assetName := release.Assets[i].GetName()
 				if strings.HasSuffix(assetName, ".tar.gz") {
-					if pluginAsset != nil {
+					if foundPluginAsset != nil {
 						return nil, errors.Errorf("found unexpected file %s", assetName)
 					}
-					pluginAsset = &release.Assets[i]
+					foundPluginAsset = &release.Assets[i]
 				}
 			}
 
-			if pluginAsset != nil {
-				return pluginAsset, nil
+			if foundPluginAsset != nil {
+				return foundPluginAsset, nil
 			}
 			LogInfo("Release found but no assets yet. Still waiting...")
 		}
@@ -500,14 +503,13 @@ func uploadFilesToGithub(ctx context.Context, githubClient *github.Client, owner
 		defer file.Close()
 
 		// Attempt to remove asset, incase it exists.
-		asset, err := getReleaseAsset(ctx, owner, githubClient, repo, release.GetID(), assetName)
-		if err != nil {
-			LogInfo("no existing release asset (%s) found, moving on to uploading it, err=%s", assetName, err.Error())
-		} else {
+		if asset, err := getReleaseAsset(ctx, owner, githubClient, repo, release.GetID(), assetName); err == nil {
 			if _, err = githubClient.Repositories.DeleteReleaseAsset(ctx, owner, repo, asset.GetID()); err != nil {
 				return errors.Wrapf(err, "failed to remove asset (%s) from repo", assetName)
 			}
 			LogInfo("removed release asset (%s) for repo (%s), tag (%s)", assetName, repo, tag)
+		} else {
+			LogInfo("no existing release asset (%s) found, moving on to uploading it, err=%s", assetName, err.Error())
 		}
 
 		_, _, err = githubClient.Repositories.UploadReleaseAsset(ctx, owner, repo, release.GetID(), opts, file)
@@ -571,7 +573,7 @@ func getPluginSigningSftpClient(cfg *MatterbuildConfig) (*sftp.Client, error) {
 		return nil, errors.Wrapf(err, "failed to setup client config")
 	}
 
-	client, err := ssh.Dial("tcp", fmt.Sprintf("%v:22", cfg.PluginSigningSSHHost), &clientConfig)
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%v:22", cfg.PluginSigningSSHHost), clientConfig)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to setup client config")
 	}
@@ -659,36 +661,36 @@ func archiveContains(filePath string, contains string) ([]string, error) {
 }
 
 // getSSHClientConfig Loads a private and public key from "path" and returns a SSH ClientConfig to authenticate with the server.
-func getSSHClientConfig(username string, path string, certPath string, keyCallBack ssh.HostKeyCallback) (ssh.ClientConfig, error) {
+func getSSHClientConfig(username string, path string, certPath string, keyCallBack ssh.HostKeyCallback) (*ssh.ClientConfig, error) {
 	privateKey, err := ioutil.ReadFile(path)
 	if err != nil {
-		return ssh.ClientConfig{}, errors.Wrapf(err, "failed to read key path")
+		return nil, errors.Wrapf(err, "failed to read key path")
 	}
 
 	signer, err := ssh.ParsePrivateKey(privateKey)
 	if err != nil {
-		return ssh.ClientConfig{}, errors.Wrapf(err, "failed to parse private key")
+		return nil, errors.Wrapf(err, "failed to parse private key")
 	}
 
 	// Load the certificate if present
 	if certPath != "" {
 		cert, err := ioutil.ReadFile(certPath)
 		if err != nil {
-			return ssh.ClientConfig{}, errors.Wrapf(err, "failed to read cert path")
+			return nil, errors.Wrapf(err, "failed to read cert path")
 		}
 
 		pk, _, _, _, err := ssh.ParseAuthorizedKey(cert)
 		if err != nil {
-			return ssh.ClientConfig{}, errors.Wrapf(err, "failed to parse authorized key")
+			return nil, errors.Wrapf(err, "failed to parse authorized key")
 		}
 
 		signer, err = ssh.NewCertSigner(pk.(*ssh.Certificate), signer)
 		if err != nil {
-			return ssh.ClientConfig{}, errors.Wrapf(err, "failed to get cert signer")
+			return nil, errors.Wrapf(err, "failed to get cert signer")
 		}
 	}
 
-	return ssh.ClientConfig{
+	return &ssh.ClientConfig{
 		User: username,
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
