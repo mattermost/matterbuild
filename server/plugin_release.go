@@ -503,7 +503,8 @@ func uploadFilesToGithub(ctx context.Context, githubClient *github.Client, owner
 		defer file.Close()
 
 		// Attempt to remove asset, incase it exists.
-		if asset, err := getReleaseAsset(ctx, owner, githubClient, repo, release.GetID(), assetName); err == nil {
+		asset, err := getReleaseAsset(ctx, owner, githubClient, repo, release.GetID(), assetName)
+		if err == nil {
 			if _, err = githubClient.Repositories.DeleteReleaseAsset(ctx, owner, repo, asset.GetID()); err != nil {
 				return errors.Wrapf(err, "failed to remove asset (%s) from repo", assetName)
 			}
