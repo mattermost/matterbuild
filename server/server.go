@@ -17,6 +17,7 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/gorilla/schema"
 	"github.com/julienschmidt/httprouter"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
 
@@ -404,7 +405,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	}
 
 	msg := fmt.Sprintf("Tag %s created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", tag)
-	if err := createTag(ctx, client, Cfg.GithubOrg, tag, repo); err == ErrTagExists {
+	if err := createTag(ctx, client, Cfg.GithubOrg, tag, repo); errors.Is(err, ErrTagExists) {
 		if !force {
 			WriteErrorResponse(w, NewError(fmt.Errorf("Tag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", tag).Error(), nil))
 			return nil
