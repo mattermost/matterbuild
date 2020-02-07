@@ -15,7 +15,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/julienschmidt/httprouter v1.1.0
 	github.com/kr/pretty v0.2.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.11.0
 	github.com/spf13/cobra v0.0.0-20170314171253-7be4beda01ec
 	github.com/spf13/pflag v1.0.1-0.20170901120850-7aff26db30c1 // indirect

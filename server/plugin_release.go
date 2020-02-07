@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -26,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/eugenmayer/go-sshclient/sshwrapper"
 	"github.com/google/go-github/github"
+	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
@@ -33,7 +33,7 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var ErrTagExists = fmt.Errorf("tag already exists.")
+var ErrTagExists = errors.New("tag already exists.")
 
 // cutPlugin entry point to cutting a release for a plugin.
 // This method DOES NOT generate github plugin release asset (<plugin>.tar.gz).
@@ -49,46 +49,51 @@ func cutPlugin(cfg *MatterbuildConfig, owner, repositoryName, tag string) error 
 
 	pluginAsset, err := getPluginAsset(ctx, client, owner, repositoryName, tag)
 	if err != nil {
-		return fmt.Errorf("failed to get plugin asset err=%w", err)
+		return errors.Wrapf(err, "failed to get plugin asset")
 	}
 
 	// Download plugin tar into temp folder
 	tmpFolder, err := ioutil.TempDir("", pluginAsset.GetName())
 	if err != nil {
-		return fmt.Errorf("failed to create temp dir err=%w", err)
+		return errors.Wrapf(err, "failed to create temp dir")
 	}
 	defer os.RemoveAll(tmpFolder)
 
 	githubPluginFilePath, err := downloadAsset(ctx, pluginAsset, tmpFolder)
 	if err != nil {
-		return fmt.Errorf("failed to download asset err=%w", err)
+		return errors.Wrapf(err, "failed to download asset")
 	}
 
 	// Split plugin into platform specific tars
 	platformPluginFilePaths, err := createPlatformPlugins(repositoryName, tag, githubPluginFilePath, tmpFolder)
 	if err != nil {
-		return fmt.Errorf("failed to create platform tars err=%w", err)
+		return errors.Wrapf(err, "failed to create platform tars")
 	}
 
 	// Sign plugin tars and put them in tmpFolder. Signature files are assumed to be <path>.sig
 	err = signPlugins(Cfg, append(platformPluginFilePaths, githubPluginFilePath), tmpFolder)
 	if err != nil {
-		return fmt.Errorf("failed to sign plugin tars err=%w", err)
+		return errors.Wrapf(err, "failed to sign plugin tars")
 	}
 
 	// Upload github plugin tar signature to github
-	githubPluginSignatureFilePath := fmt.Sprintf("%s.sig", githubPluginFilePath)
+	githubPluginSignatureFilePath := githubPluginFilePath + ".sig"
 	if err := uploadFilesToGithub(ctx, client, owner, repositoryName, tag, []string{githubPluginSignatureFilePath}); err != nil {
-		return fmt.Errorf("failed to upload files to github err=%w", err)
+		return errors.Wrapf(err, "failed to upload files to github")
 	}
 
-	// Duplicate github plugin tar signature that follows s3 release bucket naming convention
-	s3PluginSignatureFilepath := filepath.Join(tmpFolder, fmt.Sprintf("%v-%v.tar.gz.sig", repositoryName, tag))
+	// Duplicate github plugin tar and its signature that follows s3 release bucket naming convention
+	s3PluginFilepath := filepath.Join(tmpFolder, fmt.Sprintf("%v-%v.tar.gz", repositoryName, tag))
+	if err := os.Symlink(githubPluginFilePath, s3PluginFilepath); err != nil {
+		return errors.Wrapf(err, "failed to duplicate plugin file")
+	}
+
+	s3PluginSignatureFilepath := s3PluginFilepath + ".sig"
 	if err := os.Symlink(githubPluginSignatureFilePath, s3PluginSignatureFilepath); err != nil {
-		return fmt.Errorf("failed to duplicate signature file err=%w", err)
+		return errors.Wrapf(err, "failed to duplicate signature file")
 	}
 
-	s3Bucket := []string{s3PluginSignatureFilepath}
+	s3Bucket := []string{s3PluginFilepath, s3PluginSignatureFilepath}
 	for _, p := range platformPluginFilePaths {
 		s3Bucket = append(s3Bucket, p)
 		s3Bucket = append(s3Bucket, fmt.Sprintf("%s.sig", p))
@@ -96,7 +101,7 @@ func cutPlugin(cfg *MatterbuildConfig, owner, repositoryName, tag string) error 
 
 	// Upload plugins and signatures to s3 release bucket
 	if err := uploadToS3(ctx, Cfg, s3Bucket); err != nil {
-		return fmt.Errorf("failed to upload to s3 err=%w", err)
+		return errors.Wrapf(err, "failed to upload to s3")
 	}
 
 	return nil
@@ -110,7 +115,7 @@ func checkRepo(cfg *MatterbuildConfig, owner, repo string) error {
 
 	if _, _, err := client.Repositories.ListBranches(ctx, owner, repo, nil); err != nil {
 		LogError("No branch found. err=" + err.Error())
-		return fmt.Errorf("Looks like this Repository is not part of the org or does not exist. Repo: %s", repo)
+		return errors.Wrapf(err, "looks like this Repository is not part of the org or does not exist. Repo: %s", repo)
 	}
 
 	return nil
@@ -124,7 +129,7 @@ func getReleaseByTag(cfg *MatterbuildConfig, owner, repositoryName, tag string) 
 
 	release, _, err := client.Repositories.GetReleaseByTag(ctx, owner, repositoryName, tag)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get release by tag err=%w", err)
+		return nil, errors.Wrapf(err, "failed to get release by tag")
 	}
 
 	return release, nil
@@ -151,7 +156,7 @@ func createTag(cfg *MatterbuildConfig, owner, tag, repository string) error {
 
 	ref, _, err := client.Git.GetRef(ctx, owner, repository, "heads/master")
 	if err != nil {
-		return fmt.Errorf("failed to get github ref err=%w", err)
+		return errors.Wrapf(err, "failed to get github ref")
 	}
 
 	tags := &github.Tag{
@@ -161,7 +166,7 @@ func createTag(cfg *MatterbuildConfig, owner, tag, repository string) error {
 	}
 
 	if _, _, err = client.Git.CreateTag(ctx, owner, repository, tags); err != nil {
-		return fmt.Errorf("failed to create tag err=%w", err)
+		return errors.Wrapf(err, "failed to create tag")
 	}
 
 	refTag := &github.Reference{
@@ -170,7 +175,7 @@ func createTag(cfg *MatterbuildConfig, owner, tag, repository string) error {
 	}
 
 	if _, _, err = client.Git.CreateRef(ctx, owner, repository, refTag); err != nil {
-		return fmt.Errorf("failed to create ref err=%w", err)
+		return errors.Wrapf(err, "failed to create ref")
 	}
 
 	return nil
@@ -182,28 +187,28 @@ func signPlugins(cfg *MatterbuildConfig, filePaths []string, tmpFolder string) e
 	// Copy files to remote server.
 	remotePaths, err := copyFilesToRemoteServer(cfg, filePaths)
 	if err != nil {
-		return fmt.Errorf("error while copying files err=%w", err)
+		return errors.Wrapf(err, "error while copying files")
 	}
 
 	// Sign files on remote server.
 	remoteSignaturePaths, err := signFilesOnRemoteServer(cfg, remotePaths)
 	if err != nil {
-		return fmt.Errorf("error while signing files err=%w", err)
+		return errors.Wrapf(err, "error while signing files")
 	}
 
 	// Fetch signatures from remote server.
 	if err := copyFilesFromRemoteServer(cfg, remoteSignaturePaths, tmpFolder); err != nil {
-		return fmt.Errorf("error while copying remote files err=%w", err)
+		return errors.Wrapf(err, "error while copying remote files")
 	}
 
 	// Verify signatures.
 	if err := verifySignatures(filePaths); err != nil {
-		return fmt.Errorf("failed signature verification err=%w", err)
+		return errors.Wrapf(err, "failed signature verification")
 	}
 
 	// All is well, remove *.tar.gz files from remote server.
 	if err := removeFilesFromRemoteServer(cfg, remotePaths); err != nil {
-		return fmt.Errorf("failed to remove files from remote server err=%w", err)
+		return errors.Wrapf(err, "failed to remove files from remote server")
 	}
 
 	return nil
@@ -215,14 +220,14 @@ func copyFilesFromRemoteServer(cfg *MatterbuildConfig, remoteFiles []string, plu
 
 	sftp, err := getPluginSigningSftpClient(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to get sftp client err=%w", err)
+		return errors.Wrapf(err, "failed to get sftp client")
 	}
 	defer sftp.Close()
 
 	for _, remoteFile := range remoteFiles {
 		srcFile, err := sftp.Open(remoteFile)
 		if err != nil {
-			return fmt.Errorf("failed to open remote file %s, err=%w", remoteFile, err)
+			return errors.Wrapf(err, "failed to open remote file %s,", remoteFile)
 		}
 		defer srcFile.Close()
 
@@ -230,12 +235,12 @@ func copyFilesFromRemoteServer(cfg *MatterbuildConfig, remoteFiles []string, plu
 		LogInfo("%s -> %s", remoteFile, destination)
 		dstFile, err := os.Create(destination)
 		if err != nil {
-			return fmt.Errorf("failed to create file %s, err=%w", destination, err)
+			return errors.Wrapf(err, "failed to create file %s,", destination)
 		}
 		defer dstFile.Close()
 
 		if _, err := srcFile.WriteTo(dstFile); err != nil {
-			return fmt.Errorf("error while reading from remote buffer err=%w", err)
+			return errors.Wrapf(err, "error while reading from remote buffer")
 		}
 	}
 
@@ -249,14 +254,14 @@ func copyFilesToRemoteServer(cfg *MatterbuildConfig, filePaths []string) ([]stri
 
 	sftp, err := getPluginSigningSftpClient(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get sftp client err=%w", err)
+		return nil, errors.Wrapf(err, "failed to get sftp client")
 	}
 	defer sftp.Close()
 
 	for _, filePath := range filePaths {
 		f, err := os.Open(filePath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to open file %s, err=%w", filePath, err)
+			return nil, errors.Wrapf(err, "failed to open file %s,", filePath)
 		}
 		defer f.Close()
 
@@ -266,12 +271,12 @@ func copyFilesToRemoteServer(cfg *MatterbuildConfig, filePaths []string) ([]stri
 		// Open the source file
 		srcFile, err := sftp.Create(serverPath)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create remote file %s, err=%w", serverPath, err)
+			return nil, errors.Wrapf(err, "failed to create remote file %s,", serverPath)
 		}
 		defer srcFile.Close()
 
 		if _, err := srcFile.ReadFrom(f); err != nil {
-			return nil, fmt.Errorf("failed to read from file err=%w", err)
+			return nil, errors.Wrapf(err, "failed to read from file")
 		}
 
 		result = append(result, serverPath)
@@ -286,13 +291,13 @@ func removeFilesFromRemoteServer(cfg *MatterbuildConfig, remoteFiles []string) e
 
 	sftp, err := getPluginSigningSftpClient(cfg)
 	if err != nil {
-		return fmt.Errorf("failed to get sftp client err=%w", err)
+		return errors.Wrapf(err, "failed to get sftp client")
 	}
 	defer sftp.Close()
 
 	for _, remoteFile := range remoteFiles {
 		if err := sftp.Remove(remoteFile); err != nil {
-			return fmt.Errorf("failed to remove %s, err=%w", remoteFile, err)
+			return errors.Wrapf(err, "failed to remove %s,", remoteFile)
 		}
 	}
 
@@ -308,7 +313,7 @@ func signFilesOnRemoteServer(cfg *MatterbuildConfig, remoteFilePaths []string) (
 
 	clientConfig, err := getSSHClientConfig(cfg.PluginSigningSSHUser, cfg.PluginSigningSSHKeyPath, cfg.PluginSigningSSHPublicCertPath, ssh.InsecureIgnoreHostKey())
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup client config err=%w", err)
+		return nil, errors.Wrapf(err, "failed to setup client config")
 	}
 	sshClient := sshwrapper.NewSshApi(cfg.PluginSigningSSHHost, 22, cfg.PluginSigningSSHUser, cfg.PluginSigningSSHKeyPath)
 	sshClient.SshConfig = &clientConfig
@@ -320,7 +325,7 @@ func signFilesOnRemoteServer(cfg *MatterbuildConfig, remoteFilePaths []string) (
 		LogInfo(stdout)
 		LogInfo(stderr)
 		if err != nil {
-			return nil, fmt.Errorf("failed to run signer script err=%w", err)
+			return nil, errors.Wrapf(err, "failed to run signer script")
 		}
 
 		result = append(result, fmt.Sprintf("/opt/plugin-signer/output/%s.sig", filepath.Base(remoteFilePath)))
@@ -334,30 +339,30 @@ func signFilesOnRemoteServer(cfg *MatterbuildConfig, remoteFilePaths []string) (
 func verifySignatures(pluginFilePaths []string) error {
 	block, err := armor.Decode(bytes.NewReader(mattermostPluginPublicKey))
 	if err != nil {
-		return fmt.Errorf("failed to decode public key err=%w", err)
+		return errors.Wrapf(err, "failed to decode public key")
 	}
 
 	keyring, err := openpgp.ReadKeyRing(block.Body)
 	if err != nil {
-		return fmt.Errorf("can't read public key err=%w", err)
+		return errors.Wrapf(err, "can't read public key")
 	}
 
 	for _, pluginFilePath := range pluginFilePaths {
 		signedFile, err := os.Open(pluginFilePath)
 		if err != nil {
-			return fmt.Errorf("cannot read signed file err=%w", err)
+			return errors.Wrapf(err, "cannot read signed file")
 		}
 		defer signedFile.Close()
 
 		// Assume signature is always <filepath>.sig
 		signatureFile, err := os.Open(fmt.Sprintf("%s.sig", pluginFilePath))
 		if err != nil {
-			return fmt.Errorf("cannot read signature file err=%w", err)
+			return errors.Wrapf(err, "cannot read signature file")
 		}
 		defer signatureFile.Close()
 
 		if _, err = openpgp.CheckDetachedSignature(keyring, signedFile, signatureFile); err != nil {
-			return fmt.Errorf("error while checking the signature err=%w", err)
+			return errors.Wrapf(err, "error while checking the signature")
 		}
 	}
 
@@ -370,7 +375,7 @@ func verifySignatures(pluginFilePaths []string) error {
 func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder string) ([]string, error) {
 	var result []string
 	if err := hasAllPlatformBinaries(pluginFilePath); err != nil {
-		return nil, fmt.Errorf("plugin tar missing platform binaries err=%w", err)
+		return nil, errors.Wrapf(err, "plugin tar missing platform binaries")
 	}
 
 	platformFileExclusion := map[string][]string{
@@ -399,16 +404,16 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 		}
 		cmd := fmt.Sprintf(`cat %s | gunzip | %s --wildcards %s | gzip > %s`, pluginFilePath, tarCmd, deleteWildcards, platformTar)
 		if _, err := exec.Command("bash", "-c", cmd).Output(); err != nil {
-			return nil, fmt.Errorf("failed to run bash command err=%w", err)
+			return nil, errors.Wrapf(err, "failed to run bash command")
 		}
 
 		// Verify if this tar contains the correct platform binary
 		found, err := archiveContains(platformTar, "plugin-")
 		if err != nil {
-			return nil, fmt.Errorf("failed to check files in archive %s, err=%w", platformTar, err)
+			return nil, errors.Wrapf(err, "failed to check files in archive %s,", platformTar)
 		}
 		if len(found) != 1 || found[0] != platformFileInclusion[platform] {
-			return nil, fmt.Errorf("found wrong platform binary in %s, expected %s, but found %v", platformTar, platformFileInclusion[platform], found)
+			return nil, errors.Errorf("found wrong platform binary in %s, expected %s, but found %v", platformTar, platformFileInclusion[platform], found)
 		}
 
 		result = append(result, platformTar)
@@ -423,7 +428,7 @@ func downloadAsset(ctx context.Context, asset *github.ReleaseAsset, folder strin
 	// Get the data
 	resp, err := http.Get(asset.GetBrowserDownloadURL())
 	if err != nil {
-		return "", fmt.Errorf("failed to fetch asset %s, err=%w", asset.GetBrowserDownloadURL(), err)
+		return "", errors.Wrapf(err, "failed to fetch asset %s,", asset.GetBrowserDownloadURL())
 	}
 	defer resp.Body.Close()
 
@@ -431,7 +436,7 @@ func downloadAsset(ctx context.Context, asset *github.ReleaseAsset, folder strin
 	pathToFile := filepath.Join(folder, asset.GetName())
 	out, err := os.Create(pathToFile)
 	if err != nil {
-		return "", fmt.Errorf("failed to create file for asset %s, err=%w", pathToFile, err)
+		return "", errors.Wrapf(err, "failed to create file for asset %s,", pathToFile)
 	}
 	defer out.Close()
 
@@ -461,7 +466,7 @@ func getPluginAsset(ctx context.Context, githubClient *github.Client, owner, rep
 			if err, ok := err.(*github.ErrorResponse); ok && err.Response.StatusCode == http.StatusNotFound {
 				LogInfo("get release by tag %s was not found, trying again shortly", tag)
 			} else {
-				return nil, fmt.Errorf("failed to get release by tag err=%w", err)
+				return nil, errors.Wrapf(err, "failed to get release by tag")
 			}
 		}
 
@@ -471,7 +476,7 @@ func getPluginAsset(ctx context.Context, githubClient *github.Client, owner, rep
 				assetName := release.Assets[i].GetName()
 				if strings.HasSuffix(assetName, ".tar.gz") {
 					if pluginAsset != nil {
-						return nil, fmt.Errorf("found unexpected file %s", assetName)
+						return nil, errors.Errorf("found unexpected file %s", assetName)
 					}
 					pluginAsset = &release.Assets[i]
 				}
@@ -496,7 +501,7 @@ func uploadFilesToGithub(ctx context.Context, githubClient *github.Client, owner
 
 	release, _, err := githubClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
 	if err != nil {
-		return fmt.Errorf("failed to get release by tag err=%w", err)
+		return errors.Wrapf(err, "failed to get release by tag")
 	}
 
 	for _, filePath := range filePaths {
@@ -507,7 +512,7 @@ func uploadFilesToGithub(ctx context.Context, githubClient *github.Client, owner
 
 		file, err := os.Open(filePath)
 		if err != nil {
-			return fmt.Errorf("failed to open file to upload err=%w", err)
+			return errors.Wrapf(err, "failed to open file to upload")
 		}
 		defer file.Close()
 
@@ -517,14 +522,14 @@ func uploadFilesToGithub(ctx context.Context, githubClient *github.Client, owner
 			LogInfo("no existing release asset (%s) found, moving on to uploading it, err=%s", assetName, err.Error())
 		} else {
 			if _, err = githubClient.Repositories.DeleteReleaseAsset(ctx, owner, repo, asset.GetID()); err != nil {
-				return fmt.Errorf("failed to remove asset (%s) from repo err=%w", assetName, err)
+				return errors.Wrapf(err, "failed to remove asset (%s) from repo", assetName)
 			}
 			LogInfo("removed release asset (%s) for repo (%s), tag (%s)", assetName, repo, tag)
 		}
 
 		_, _, err = githubClient.Repositories.UploadReleaseAsset(ctx, owner, repo, release.GetID(), opts, file)
 		if err != nil {
-			return fmt.Errorf("error while uploading to github. err=%w", err)
+			return errors.Wrapf(err, "error while uploading to github.")
 		}
 	}
 
@@ -535,7 +540,7 @@ func uploadFilesToGithub(ctx context.Context, githubClient *github.Client, owner
 func getReleaseAsset(ctx context.Context, owner string, githubClient *github.Client, repositoryName string, releaseID int64, assetName string) (*github.ReleaseAsset, error) {
 	assets, _, err := githubClient.Repositories.ListReleaseAssets(ctx, owner, repositoryName, releaseID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list release assets. err=%w", err)
+		return nil, errors.Wrapf(err, "failed to list release assets.")
 	}
 
 	for _, asset := range assets {
@@ -544,7 +549,7 @@ func getReleaseAsset(ctx context.Context, owner string, githubClient *github.Cli
 		}
 	}
 
-	return nil, fmt.Errorf("could not find github release asset %s", assetName)
+	return nil, errors.Errorf("could not find github release asset %s", assetName)
 }
 
 func uploadToS3(ctx context.Context, cfg *MatterbuildConfig, filePaths []string) error {
@@ -557,7 +562,7 @@ func uploadToS3(ctx context.Context, cfg *MatterbuildConfig, filePaths []string)
 	for _, filePath := range filePaths {
 		f, err := os.Open(filePath)
 		if err != nil {
-			return fmt.Errorf("failed to open file %q, %v", filePath, err)
+			return errors.Wrapf(err, "failed to open file %v", filePath)
 		}
 		defer f.Close()
 
@@ -568,7 +573,7 @@ func uploadToS3(ctx context.Context, cfg *MatterbuildConfig, filePaths []string)
 			Body:   f,
 		})
 		if err != nil {
-			return fmt.Errorf("failed to upload file, %v", err)
+			return errors.Wrapf(err, "failed to upload file, %v", filePath)
 		}
 		LogInfo("File uploaded to, %s\n", result.Location)
 	}
@@ -580,17 +585,17 @@ func uploadToS3(ctx context.Context, cfg *MatterbuildConfig, filePaths []string)
 func getPluginSigningSftpClient(cfg *MatterbuildConfig) (*sftp.Client, error) {
 	clientConfig, err := getSSHClientConfig(cfg.PluginSigningSSHUser, cfg.PluginSigningSSHKeyPath, cfg.PluginSigningSSHPublicCertPath, ssh.InsecureIgnoreHostKey())
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup client config err=%w", err)
+		return nil, errors.Wrapf(err, "failed to setup client config")
 	}
 
 	client, err := ssh.Dial("tcp", fmt.Sprintf("%v:22", cfg.PluginSigningSSHHost), &clientConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup client config err=%w", err)
+		return nil, errors.Wrapf(err, "failed to setup client config")
 	}
 
 	sftp, err := sftp.NewClient(client)
 	if err != nil {
-		return nil, fmt.Errorf("failed to setup sftp client err=%w", err)
+		return nil, errors.Wrapf(err, "failed to setup sftp client")
 	}
 
 	return sftp, nil
@@ -600,7 +605,7 @@ func getPluginSigningSftpClient(cfg *MatterbuildConfig) (*sftp.Client, error) {
 func hasAllPlatformBinaries(filePath string) error {
 	f, err := os.Open(filePath)
 	if err != nil {
-		return fmt.Errorf("failed to setup sftp client err=%w", err)
+		return errors.Wrapf(err, "failed to setup sftp client")
 	}
 	defer f.Close()
 
@@ -630,7 +635,7 @@ func hasAllPlatformBinaries(filePath string) error {
 	}
 
 	if len(serverDist) != 3 {
-		return fmt.Errorf("plugin tar contains %+v, but should contain all platform binaries", serverDist)
+		return errors.Errorf("plugin tar contains %+v, but should contain all platform binaries", serverDist)
 	}
 
 	return nil
@@ -641,7 +646,7 @@ func archiveContains(filePath string, contains string) ([]string, error) {
 	var result []string
 	f, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open archive %s, err=%w", filePath, err)
+		return nil, errors.Wrapf(err, "failed to open archive %s,", filePath)
 	}
 
 	gzf, err := gzip.NewReader(f)
@@ -656,7 +661,7 @@ func archiveContains(filePath string, contains string) ([]string, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to read next %s, err=%w", filePath, err)
+			return nil, errors.Wrapf(err, "failed to read next %s,", filePath)
 		}
 
 		switch header.Typeflag {
@@ -674,29 +679,29 @@ func archiveContains(filePath string, contains string) ([]string, error) {
 func getSSHClientConfig(username string, path string, certPath string, keyCallBack ssh.HostKeyCallback) (ssh.ClientConfig, error) {
 	privateKey, err := ioutil.ReadFile(path)
 	if err != nil {
-		return ssh.ClientConfig{}, err
+		return ssh.ClientConfig{}, errors.Wrapf(err, "failed to read key path")
 	}
 
 	signer, err := ssh.ParsePrivateKey(privateKey)
 	if err != nil {
-		return ssh.ClientConfig{}, err
+		return ssh.ClientConfig{}, errors.Wrapf(err, "failed to parse private key")
 	}
 
 	// Load the certificate if present
 	if certPath != "" {
 		cert, err := ioutil.ReadFile(certPath)
 		if err != nil {
-			return ssh.ClientConfig{}, err
+			return ssh.ClientConfig{}, errors.Wrapf(err, "failed to read cert path")
 		}
 
 		pk, _, _, _, err := ssh.ParseAuthorizedKey(cert)
 		if err != nil {
-			return ssh.ClientConfig{}, err
+			return ssh.ClientConfig{}, errors.Wrapf(err, "failed to parse authorized key")
 		}
 
 		signer, err = ssh.NewCertSigner(pk.(*ssh.Certificate), signer)
 		if err != nil {
-			return ssh.ClientConfig{}, err
+			return ssh.ClientConfig{}, errors.Wrapf(err, "failed to get cert signer")
 		}
 	}
 
