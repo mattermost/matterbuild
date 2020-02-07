@@ -18,7 +18,7 @@ Matterbuild is an internal Mattermost chatops tool for generating Mattermost rel
 Simply run the following:
 
 ```
-$ make run-server
+$ make run
 ```
 
 ### Testing

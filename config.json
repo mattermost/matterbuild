@@ -1,5 +1,5 @@
 {
-    "ListenAddress": ":5001",
+    "ListenAddress": "0.0.0.0:5001",
     "JenkinsURL": "",
     "JenkinsUsername": "",
     "JenkinsPassword": "",

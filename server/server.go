@@ -25,6 +25,8 @@ const (
 	EPHEMERAL  = "ephemeral"
 )
 
+const pluginTagRegex = `^v[0-9]+\.[0-9]+\.[0-9]+$`
+
 type MMSlashCommand struct {
 	ChannelId   string `schema:"channel_id"`
 	ChannelName string `schema:"channel_name"`
@@ -373,7 +375,7 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 }
 
 func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag, repo string, force bool) error {
-	pluginTag := regexp.MustCompile("v[0-9]+.[0-9]+.[0-9]+$")
+	pluginTag := regexp.MustCompile(pluginTagRegex)
 	if tag == "" {
 		WriteErrorResponse(w, NewError("Tag should not be empty", nil))
 		return nil
@@ -413,7 +415,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 			LogError("failed to cutPlugin %s", err.Error())
 			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			errColor := "#fc081c"
-			if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Pluging Release Process", errMsg, errColor, IN_CHANNEL)); err != nil {
+			if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Plugin Release Process", errMsg, errColor, IN_CHANNEL)); err != nil {
 				LogError("failed to post err through PostExtraMessages err=%s", err.Error())
 			}
 			return

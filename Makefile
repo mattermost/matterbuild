@@ -42,8 +42,8 @@ govet:
 	@echo Govet success
 
 ## Runs the matterbuild server.
-.PHONY: run-server
-run-server:
+.PHONY: run
+run:
 	go run matterbuild.go
 
 ## Runs test against all packages.
@@ -52,8 +52,8 @@ test:
 	$(GO) test -mod=vendor -v -race ./...
 
 ## Updates vendor dependencies.
-.PHONY: govendor
-govendor:
+.PHONY: vendor
+vendor:
 	$(GO) mod vendor
 
 ## Builds matterbuild.
