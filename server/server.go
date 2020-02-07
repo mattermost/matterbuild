@@ -394,16 +394,17 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
+	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: Cfg.GithubAccessToken})
-	tc := oauth2.NewClient(context.Background(), ts)
+	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
-	if err := checkRepo(client, Cfg.GithubOrg, repo); err != nil {
+	if err := checkRepo(ctx, client, Cfg.GithubOrg, repo); err != nil {
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
 	}
 
 	msg := fmt.Sprintf("Tag %s created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", tag)
-	if err := createTag(client, Cfg.GithubOrg, tag, repo); err == ErrTagExists {
+	if err := createTag(ctx, client, Cfg.GithubOrg, tag, repo); err == ErrTagExists {
 		if !force {
 			WriteErrorResponse(w, NewError(fmt.Errorf("Tag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", tag).Error(), nil))
 			return nil
@@ -417,7 +418,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	WriteEnrichedResponse(w, "Pluging Release Process", msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
-		if err := cutPlugin(Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
+		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
 			LogError("failed to cutPlugin %s", err.Error())
 			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			errColor := "#fc081c"
@@ -429,7 +430,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 
 		// Get release link if possible
 		releaseURL := ""
-		if release, err := getReleaseByTag(client, Cfg.GithubOrg, repo, tag); err != nil {
+		if release, err := getReleaseByTag(ctx, client, Cfg.GithubOrg, repo, tag); err != nil {
 			LogError("failed to get release by tag after err=%s", err.Error())
 		} else {
 			releaseURL = release.GetHTMLURL()

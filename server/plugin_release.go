@@ -40,9 +40,7 @@ var ErrTagExists = errors.New("tag already exists.")
 // This generates:
 // 1. Plugin signature (uploaded to github)
 // 2. Platform specific plugin tars and their signatures (uploaded to s3 release bucket)
-func cutPlugin(cfg *MatterbuildConfig, client *github.Client, owner, repositoryName, tag string) error {
-	ctx := context.Background()
-
+func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *github.Client, owner, repositoryName, tag string) error {
 	pluginAsset, err := getPluginAsset(ctx, client, owner, repositoryName, tag)
 	if err != nil {
 		return errors.Wrapf(err, "failed to get plugin asset")
@@ -103,8 +101,8 @@ func cutPlugin(cfg *MatterbuildConfig, client *github.Client, owner, repositoryN
 	return nil
 }
 
-func checkRepo(client *github.Client, owner, repo string) error {
-	result, _, err := client.Search.Repositories(context.Background(), fmt.Sprintf("repo:%s/%s", owner, repo), nil)
+func checkRepo(ctx context.Context, client *github.Client, owner, repo string) error {
+	result, _, err := client.Search.Repositories(ctx, fmt.Sprintf("repo:%s/%s", owner, repo), nil)
 	if err != nil {
 		return errors.Wrapf(err, "failed to fetch github repo %s", repo)
 	}
@@ -116,8 +114,8 @@ func checkRepo(client *github.Client, owner, repo string) error {
 	return nil
 }
 
-func getReleaseByTag(client *github.Client, owner, repositoryName, tag string) (*github.RepositoryRelease, error) {
-	release, _, err := client.Repositories.GetReleaseByTag(context.Background(), owner, repositoryName, tag)
+func getReleaseByTag(ctx context.Context, client *github.Client, owner, repositoryName, tag string) (*github.RepositoryRelease, error) {
+	release, _, err := client.Repositories.GetReleaseByTag(ctx, owner, repositoryName, tag)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get release by tag")
 	}
@@ -127,16 +125,14 @@ func getReleaseByTag(client *github.Client, owner, repositoryName, tag string) (
 
 // createTag creates a new tag at master for repo.
 // Returns ErrTagExists if tag already exists, nil if successful and an error otherwise.
-func createTag(client *github.Client, owner, tag, repository string) error {
-	ctx := context.Background()
-
+func createTag(ctx context.Context, client *github.Client, owner, tag, repository string) error {
 	refs, _, err := client.Git.GetRefs(ctx, owner, repository, fmt.Sprintf("tags/%s", tag))
 	if err != nil {
-		if err, ok := err.(*github.ErrorResponse); ok && err.Response.StatusCode == http.StatusNotFound {
-			LogInfo("tag %s was not found, moving on to creating tag", tag)
-		} else {
+		if gErr, ok := err.(*github.ErrorResponse); !ok || gErr.Response.StatusCode != http.StatusNotFound {
 			return err
 		}
+
+		LogInfo("tag %s was not found, creating tag", tag)
 	} else if len(refs) > 0 {
 		return ErrTagExists
 	}
