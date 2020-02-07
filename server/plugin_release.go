@@ -30,7 +30,6 @@ import (
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/oauth2"
 )
 
 var ErrTagExists = errors.New("tag already exists.")
@@ -41,11 +40,8 @@ var ErrTagExists = errors.New("tag already exists.")
 // This generates:
 // 1. Plugin signature (uploaded to github)
 // 2. Platform specific plugin tars and their signatures (uploaded to s3 release bucket)
-func cutPlugin(cfg *MatterbuildConfig, owner, repositoryName, tag string) error {
+func cutPlugin(cfg *MatterbuildConfig, client *github.Client, owner, repositoryName, tag string) error {
 	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.GithubAccessToken})
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
 
 	pluginAsset, err := getPluginAsset(ctx, client, owner, repositoryName, tag)
 	if err != nil {
@@ -107,27 +103,21 @@ func cutPlugin(cfg *MatterbuildConfig, owner, repositoryName, tag string) error 
 	return nil
 }
 
-func checkRepo(cfg *MatterbuildConfig, owner, repo string) error {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.GithubAccessToken})
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
+func checkRepo(client *github.Client, owner, repo string) error {
+	result, _, err := client.Search.Repositories(context.Background(), fmt.Sprintf("repo:%s/%s", owner, repo), nil)
+	if err != nil {
+		return errors.Wrapf(err, "failed to fetch github repo %s", repo)
+	}
 
-	if _, _, err := client.Repositories.ListBranches(ctx, owner, repo, nil); err != nil {
-		LogError("No branch found. err=" + err.Error())
-		return errors.Wrapf(err, "looks like this Repository is not part of the org or does not exist. Repo: %s", repo)
+	if result.GetTotal() == 0 {
+		return errors.Errorf("looks like this repository is not part of the org or does not exist. Repo: %s", repo)
 	}
 
 	return nil
 }
 
-func getReleaseByTag(cfg *MatterbuildConfig, owner, repositoryName, tag string) (*github.RepositoryRelease, error) {
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.GithubAccessToken})
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
-
-	release, _, err := client.Repositories.GetReleaseByTag(ctx, owner, repositoryName, tag)
+func getReleaseByTag(client *github.Client, owner, repositoryName, tag string) (*github.RepositoryRelease, error) {
+	release, _, err := client.Repositories.GetReleaseByTag(context.Background(), owner, repositoryName, tag)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get release by tag")
 	}
@@ -137,11 +127,8 @@ func getReleaseByTag(cfg *MatterbuildConfig, owner, repositoryName, tag string) 
 
 // createTag creates a new tag at master for repo.
 // Returns ErrTagExists if tag already exists, nil if successful and an error otherwise.
-func createTag(cfg *MatterbuildConfig, owner, tag, repository string) error {
+func createTag(client *github.Client, owner, tag, repository string) error {
 	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: cfg.GithubAccessToken})
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
 
 	refs, _, err := client.Git.GetRefs(ctx, owner, repository, fmt.Sprintf("tags/%s", tag))
 	if err != nil {

@@ -5,6 +5,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,9 +14,11 @@ import (
 	"strings"
 
 	"github.com/bndr/gojenkins"
+	"github.com/google/go-github/github"
 	"github.com/gorilla/schema"
 	"github.com/julienschmidt/httprouter"
 	"github.com/spf13/cobra"
+	"golang.org/x/oauth2"
 
 	"github.com/mattermost/matterbuild/utils"
 )
@@ -391,13 +394,16 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
-	if err := checkRepo(Cfg, Cfg.GithubOrg, repo); err != nil {
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: Cfg.GithubAccessToken})
+	tc := oauth2.NewClient(context.Background(), ts)
+	client := github.NewClient(tc)
+	if err := checkRepo(client, Cfg.GithubOrg, repo); err != nil {
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
 	}
 
 	msg := fmt.Sprintf("Tag %s created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", tag)
-	if err := createTag(Cfg, Cfg.GithubOrg, tag, repo); err == ErrTagExists {
+	if err := createTag(client, Cfg.GithubOrg, tag, repo); err == ErrTagExists {
 		if !force {
 			WriteErrorResponse(w, NewError(fmt.Errorf("Tag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", tag).Error(), nil))
 			return nil
@@ -411,7 +417,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	WriteEnrichedResponse(w, "Pluging Release Process", msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
-		if err := cutPlugin(Cfg, Cfg.GithubOrg, repo, tag); err != nil {
+		if err := cutPlugin(Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
 			LogError("failed to cutPlugin %s", err.Error())
 			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			errColor := "#fc081c"
@@ -423,7 +429,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 
 		// Get release link if possible
 		releaseURL := ""
-		if release, err := getReleaseByTag(Cfg, Cfg.GithubOrg, repo, tag); err != nil {
+		if release, err := getReleaseByTag(client, Cfg.GithubOrg, repo, tag); err != nil {
 			LogError("failed to get release by tag after err=%s", err.Error())
 		} else {
 			releaseURL = release.GetHTMLURL()
