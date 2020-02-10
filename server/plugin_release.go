@@ -406,6 +406,7 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 	return result, nil
 }
 
+// downloadAsset Downloads asset into a given folder and returns its path.
 func downloadAsset(ctx context.Context, asset *github.ReleaseAsset, folder string) (filePath string, err error) {
 	LogInfo("Downloading github release asset")
 
