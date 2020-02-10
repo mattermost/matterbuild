@@ -129,11 +129,11 @@ func createTag(ctx context.Context, client *github.Client, owner, tag, repositor
 	refs, _, err := client.Git.GetRefs(ctx, owner, repository, fmt.Sprintf("tags/%s", tag))
 	if err != nil {
 		var gerr *github.ErrorResponse
-		if !errors.As(err, &gerr) || gerr.Response.StatusCode != http.StatusNotFound {
-			return errors.Wrap(err, "failed to get github tag")
+		if errors.As(err, &gerr) && gerr.Response.StatusCode == http.StatusNotFound {
+			LogInfo("tag %s was not found, creating tag", tag)
+		} else {
+			return errors.Wrapf(err, "failed to get github tag")
 		}
-
-		LogInfo("tag %s was not found, creating tag", tag)
 	} else if len(refs) > 0 {
 		return ErrTagExists
 	}
@@ -450,11 +450,11 @@ func getPluginAsset(ctx context.Context, githubClient *github.Client, owner, rep
 		release, _, err := githubClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
 		if err != nil {
 			var gerr *github.ErrorResponse
-			if !errors.As(err, &gerr) || gerr.Response.StatusCode != http.StatusNotFound {
+			if errors.As(err, &gerr) && gerr.Response.StatusCode == http.StatusNotFound {
+				LogInfo("get release by tag %s was not found, trying again shortly", tag)
+			} else {
 				return nil, errors.Wrap(err, "failed to get release by tag")
 			}
-
-			LogInfo("get release by tag %s was not found, trying again shortly", tag)
 		}
 
 		if release != nil {
