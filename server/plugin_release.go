@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/eugenmayer/go-sshclient/sshwrapper"
 	"github.com/google/go-github/github"
+	"github.com/mattermost/matterbuild/utils"
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/openpgp"
@@ -51,7 +52,8 @@ func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *github.Clien
 	if err != nil {
 		return errors.Wrap(err, "failed to create temp dir")
 	}
-	defer os.RemoveAll(tmpFolder)
+	fmt.Println("dir is... ", tmpFolder)
+	// defer os.RemoveAll(tmpFolder)
 
 	githubPluginFilePath, err := downloadAsset(ctx, pluginAsset, tmpFolder)
 	if err != nil {
@@ -375,35 +377,57 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 	}
 
 	for platform, excludeOtherPlatforms := range platformFileExclusion {
-		deleteWildcards := ""
-		for _, deleteWildcard := range excludeOtherPlatforms {
-			deleteWildcards += fmt.Sprintf(`--delete "*%s*" `, deleteWildcard)
-		}
-
-		// Couldn't achieve gzip level compressions with golang archive api, using shell cmds instead.
-		platformTar := filepath.Join(pluginFolder, fmt.Sprintf("%v-%v-%v.tar.gz", repositoryName, tag, platform))
-		tarCmd := "tar"
-		if runtime.GOOS == "darwin" {
-			tarCmd = "gtar"
-		}
-		cmd := fmt.Sprintf(`cat %s | gunzip | %s --wildcards %s | gzip > %s`, pluginFilePath, tarCmd, deleteWildcards, platformTar)
-		if _, err := exec.Command("bash", "-c", cmd).Output(); err != nil {
-			return nil, errors.Wrap(err, "failed to run bash command")
+		platformTarPath := filepath.Join(pluginFolder, fmt.Sprintf("%v-%v-%v.tar.gz", repositoryName, tag, platform))
+		err := createPlatformPlugin(pluginFilePath, excludeOtherPlatforms, platformTarPath)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to create platform tar for %s", platformTarPath)
 		}
 
 		// Verify if this tar contains the correct platform binary
-		found, err := archiveContains(platformTar, "plugin-")
+		found, err := archiveContains(platformTarPath, "plugin-")
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to check files in archive %s,", platformTar)
+			return nil, errors.Wrapf(err, "failed to check files in archive %s,", platformTarPath)
 		}
 		if len(found) != 1 || found[0] != platformFileInclusion[platform] {
-			return nil, errors.Errorf("found wrong platform binary in %s, expected %s, but found %v", platformTar, platformFileInclusion[platform], found)
+			return nil, errors.Errorf("found wrong platform binary in %s, expected %s, but found %v", platformTarPath, platformFileInclusion[platform], found)
 		}
 
-		result = append(result, platformTar)
+		result = append(result, platformTarPath)
 	}
 
 	return result, nil
+}
+
+func createPlatformPlugin(pluginFilePath string, excludePlatforms []string, platformTarPath string) error {
+	// Couldn't achieve gzip level compressions with golang archive api, using shell cmds instead.
+	tarCmdStr := "tar"
+	if runtime.GOOS == "darwin" {
+		tarCmdStr = "gtar"
+	}
+
+	deleteWildcards := []string{"--wildcards"}
+	for _, deleteWildcard := range excludePlatforms {
+		deleteWildcards = append(deleteWildcards, "--delete")
+		deleteWildcards = append(deleteWildcards, fmt.Sprintf("*%s*", deleteWildcard))
+	}
+
+	f, err := os.Create(platformTarPath)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create platform tar file %s", platformTarPath)
+	}
+
+	catCmd := exec.Command("cat", pluginFilePath)
+	gunzipCmd := exec.Command("gunzip")
+	tarCmd := exec.Command(tarCmdStr, deleteWildcards...)
+	gzipCmd := exec.Command("gzip")
+	cmds := []*exec.Cmd{catCmd, gunzipCmd, tarCmd, gzipCmd}
+
+	utils.AssemblePipes(cmds, os.Stdin, f)
+	if err = utils.RunCmds(cmds); err != nil {
+		return errors.Wrapf(err, "failed to run shell cmds")
+	}
+
+	return nil
 }
 
 // downloadAsset Downloads asset into a given folder and returns its path.
@@ -677,12 +701,14 @@ func getSSHClientConfig(username, path, certPath, hostPublicKey string) (*ssh.Cl
 
 	// Load the certificate if present
 	if certPath != "" {
-		cert, err := ioutil.ReadFile(certPath)
+		var cert []byte
+		cert, err = ioutil.ReadFile(certPath)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read cert path")
 		}
 
-		pk, _, _, _, err := ssh.ParseAuthorizedKey(cert)
+		var pk ssh.PublicKey
+		pk, _, _, _, err = ssh.ParseAuthorizedKey(cert)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to parse authorized key")
 		}
