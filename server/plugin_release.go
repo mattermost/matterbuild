@@ -295,7 +295,7 @@ func signFilesOnRemoteServer(cfg *MatterbuildConfig, remoteFilePaths []string) (
 	LogInfo("Starting to sign %s", remoteFilePaths)
 	var result []string
 
-	clientConfig, err := getSSHClientConfig(cfg.PluginSigningSSHUser, cfg.PluginSigningSSHKeyPath, cfg.PluginSigningSSHPublicCertPath, ssh.InsecureIgnoreHostKey())
+	clientConfig, err := getSSHClientConfig(cfg.PluginSigningSSHUser, cfg.PluginSigningSSHKeyPath, cfg.PluginSigningSSHPublicCertPath, cfg.PluginSigningSSHHostPublicKey)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to setup client config")
 	}
@@ -569,7 +569,8 @@ func uploadToS3(ctx context.Context, cfg *MatterbuildConfig, filePaths []string)
 }
 
 func getPluginSigningSftpClient(cfg *MatterbuildConfig) (*sftp.Client, error) {
-	clientConfig, err := getSSHClientConfig(cfg.PluginSigningSSHUser, cfg.PluginSigningSSHKeyPath, cfg.PluginSigningSSHPublicCertPath, ssh.InsecureIgnoreHostKey())
+
+	clientConfig, err := getSSHClientConfig(cfg.PluginSigningSSHUser, cfg.PluginSigningSSHKeyPath, cfg.PluginSigningSSHPublicCertPath, cfg.PluginSigningSSHHostPublicKey)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to setup client config")
 	}
@@ -662,7 +663,7 @@ func archiveContains(filePath string, contains string) ([]string, error) {
 }
 
 // getSSHClientConfig Loads a private and public key from "path" and returns a SSH ClientConfig to authenticate with the server.
-func getSSHClientConfig(username string, path string, certPath string, keyCallBack ssh.HostKeyCallback) (*ssh.ClientConfig, error) {
+func getSSHClientConfig(username, path, certPath, hostPublicKey string) (*ssh.ClientConfig, error) {
 	privateKey, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read key path")
@@ -691,12 +692,21 @@ func getSSHClientConfig(username string, path string, certPath string, keyCallBa
 		}
 	}
 
+	if hostPublicKey == "" {
+		return nil, errors.New("missing host public key")
+	}
+
+	hostKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(hostPublicKey))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed parse host public key")
+	}
+
 	return &ssh.ClientConfig{
 		User: username,
 		Auth: []ssh.AuthMethod{
 			ssh.PublicKeys(signer),
 		},
-		HostKeyCallback: keyCallBack,
+		HostKeyCallback: ssh.FixedHostKey(hostKey),
 		Timeout:         30 * time.Second,
 	}, nil
 }

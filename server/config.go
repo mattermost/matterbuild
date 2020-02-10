@@ -23,6 +23,7 @@ type MatterbuildConfig struct {
 	PluginSigningSSHKeyPath        string
 	PluginSigningSSHUser           string
 	PluginSigningSSHHost           string
+	PluginSigningSSHHostPublicKey  string
 
 	PluginSigningAWSAccessKey      string
 	PluginSigningAWSSecretKey      string
