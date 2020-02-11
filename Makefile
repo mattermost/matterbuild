@@ -3,7 +3,7 @@ DEP ?= $(shell command -v dep 2> /dev/null)
 
 PACKAGES=$(shell go list ./...)
 
-## Checks the code style, tests and builds
+## Checks the code style, tests and builds.
 .PHONY: all
 all: check-style test build
 
@@ -41,10 +41,23 @@ govet:
 	$(GO) vet -mod=vendor -vettool=$(GOPATH)/bin/shadow $(PACKAGES) || exit 1
 	@echo Govet success
 
+## Runs the matterbuild server.
+.PHONY: run
+run:
+	go run matterbuild.go
 
+## Runs test against all packages.
+.PHONY: test
 test:
 	$(GO) test -mod=vendor -v -race ./...
 
+## Updates vendor dependencies.
+.PHONY: vendor
+vendor:
+	$(GO) mod vendor
+
+## Builds matterbuild.
+.PHONY: build
 build:
 	@echo Building
 
@@ -54,7 +67,8 @@ build:
 	mv matterbuild dist/matterbuild/
 	cp config.json dist/matterbuild/
 
-
+## Packages matterbuild.
+.PHONY: package
 package: build
 	tar -C dist -czf dist/matterbuild.tar.gz matterbuild
 
