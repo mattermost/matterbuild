@@ -36,19 +36,19 @@ $ make test
 3. Set Request URL to `http://localhost:5001/slash_command`
 4. Set Request Method to `POST`
 5. Click `Save`
-6. Navigate to any channel and type `/matterbuild cutPlugin --tag v0.4.1 --repo mattermost-plugin-demo`
+6. Navigate to any channel and type `/matterbuild cutplugin --tag v0.4.1 --repo mattermost-plugin-demo`
 
 ### Test via curl
 
 Invoke matterbuild commands using curl:
 
 ```
-curl -X POST http://localhost:5001/slash_command -d "command=/matterbuild&token=&user_id=" -d "text=cutPlugin+--tag+v0.4.1+--repo+mattermost-plugin-demo" 
+curl -X POST http://localhost:5001/slash_command -d "command=/matterbuild&token=&user_id=" -d "text=cutplugin+--tag+v0.4.1+--repo+mattermost-plugin-demo" 
 ```
 
-### Testing cutPlugin
+### Testing cutplugin
 
-To test the cutPlugin you have to:
+To test the cutplugin you have to:
 1. Connect to [Mattermost VPN](https://developers.mattermost.com/internal/infrastructure/vpn/)
 2. Get AWS [Vault](https://developers.mattermost.com/internal/infrastructure/vault/) credentials
 3. Signed public certificate by Vault

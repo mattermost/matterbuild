@@ -170,7 +170,7 @@ func checkSlashPermissions(command *MMSlashCommand) *AppError {
 		return NewError("You don't have permissions to use this command.", nil)
 	}
 
-	if command.Command == "cut" || command.Command == "cutPlugin" {
+	if command.Command == "cut" || command.Command == "cutplugin" {
 		hasPermissions = false
 		for _, allowedUser := range Cfg.ReleaseUsers {
 			if allowedUser == command.UserId {
@@ -235,7 +235,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	}
 
 	var cutPluginCmd = &cobra.Command{
-		Use:   "cutPlugin [--tag] [--repo] [--force]",
+		Use:   "cutplugin [--tag] [--repo] [--force]",
 		Short: "Cut a release of any plugin under Mattermost Organization",
 		Long:  "Cut a release of any plugin under Mattermost Organization.",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -420,7 +420,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 
 	go func() {
 		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
-			LogError("failed to cutPlugin %s", err.Error())
+			LogError("failed to cutplugin %s", err.Error())
 			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			errColor := "#fc081c"
 			if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Plugin Release Process", errMsg, errColor, IN_CHANNEL)); err != nil {
