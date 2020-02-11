@@ -52,8 +52,7 @@ func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *github.Clien
 	if err != nil {
 		return errors.Wrap(err, "failed to create temp dir")
 	}
-	fmt.Println("dir is... ", tmpFolder)
-	// defer os.RemoveAll(tmpFolder)
+	defer os.RemoveAll(tmpFolder)
 
 	githubPluginFilePath, err := downloadAsset(ctx, pluginAsset, tmpFolder)
 	if err != nil {
