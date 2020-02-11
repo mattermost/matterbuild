@@ -66,6 +66,7 @@ To test the cutPlugin you have to:
 "PluginSigningSSHPublicCertPath": "/Users/<user>/.ssh/signed-cert.pub",
 "PluginSigningSSHUser": "---",
 "PluginSigningSSHHost": "---",
+"PluginSigningSSHHostPublicKey": "199.199.222.222 ecdsa-sha2-nistp256 AyNTYAAABBBDZEF6pmnR=",
 "PluginSigningAWSAccessKey": "---",
 "PluginSigningAWSSecretKey": "---",
 "PluginSigningAWSRegion": "us-east-1",
