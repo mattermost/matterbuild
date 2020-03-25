@@ -187,21 +187,7 @@ func checkSlashPermissions(command *MMSlashCommand) *AppError {
 	return nil
 }
 
-func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	command, err := ParseSlashCommand(r)
-	if err != nil {
-		WriteErrorResponse(w, NewError("Unable to parse incoming slash command info", err))
-		return
-	}
-
-	if err := checkSlashPermissions(command); err != nil {
-		WriteErrorResponse(w, err)
-		return
-	}
-
-	// Output Buffer
-	outBuf := &bytes.Buffer{}
-
+func initCommands(w http.ResponseWriter, command *MMSlashCommand) *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Use:   "matterbuild",
 		Short: "Control of the build system though MM slash commands!",
@@ -297,10 +283,30 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd)
+
+	return rootCmd
+}
+
+func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	command, err := ParseSlashCommand(r)
+	if err != nil {
+		WriteErrorResponse(w, NewError("Unable to parse incoming slash command info", err))
+		return
+	}
+
+	if err := checkSlashPermissions(command); err != nil {
+		WriteErrorResponse(w, err)
+		return
+	}
+
+	// Output Buffer
+	outBuf := &bytes.Buffer{}
+
+	rootCmd := initCommands(w, command)
+
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
-
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd)
 
 	err = rootCmd.Execute()
 
