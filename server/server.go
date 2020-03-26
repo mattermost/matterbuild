@@ -145,7 +145,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	w.Write([]byte("This is the matterbuild server."))
 }
 
-func checkSlashPermissions(command *MMSlashCommand) *AppError {
+func checkSlashPermissions(command *MMSlashCommand, rootCmd *cobra.Command) *AppError {
 	hasPermissions := false
 	for _, allowedToken := range Cfg.AllowedTokens {
 		if allowedToken == command.Token {
@@ -170,7 +170,8 @@ func checkSlashPermissions(command *MMSlashCommand) *AppError {
 		return NewError("You don't have permissions to use this command.", nil)
 	}
 
-	if command.Command == "cut" || command.Command == "cutplugin" {
+	subCommand, _, _ := rootCmd.Find(strings.Fields(strings.TrimSpace(command.Text)))
+	if subCommand.Name() == "cut" || subCommand.Name() == "cutplugin" {
 		hasPermissions = false
 		for _, allowedUser := range Cfg.ReleaseUsers {
 			if allowedUser == command.UserId {
@@ -187,21 +188,7 @@ func checkSlashPermissions(command *MMSlashCommand) *AppError {
 	return nil
 }
 
-func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	command, err := ParseSlashCommand(r)
-	if err != nil {
-		WriteErrorResponse(w, NewError("Unable to parse incoming slash command info", err))
-		return
-	}
-
-	if err := checkSlashPermissions(command); err != nil {
-		WriteErrorResponse(w, err)
-		return
-	}
-
-	// Output Buffer
-	outBuf := &bytes.Buffer{}
-
+func initCommands(w http.ResponseWriter, command *MMSlashCommand) *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Use:   "matterbuild",
 		Short: "Control of the build system though MM slash commands!",
@@ -297,10 +284,30 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd)
+
+	return rootCmd
+}
+
+func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	command, err := ParseSlashCommand(r)
+	if err != nil {
+		WriteErrorResponse(w, NewError("Unable to parse incoming slash command info", err))
+		return
+	}
+
+	rootCmd := initCommands(w, command)
+
+	if err := checkSlashPermissions(command, rootCmd); err != nil {
+		WriteErrorResponse(w, err)
+		return
+	}
+
+	// Output Buffer
+	outBuf := &bytes.Buffer{}
+
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
-
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd)
 
 	err = rootCmd.Execute()
 
