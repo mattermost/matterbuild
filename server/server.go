@@ -145,7 +145,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	w.Write([]byte("This is the matterbuild server."))
 }
 
-func checkSlashPermissions(command *MMSlashCommand) *AppError {
+func checkSlashPermissions(command *MMSlashCommand, rootCmd *cobra.Command) *AppError {
 	hasPermissions := false
 	for _, allowedToken := range Cfg.AllowedTokens {
 		if allowedToken == command.Token {
@@ -295,15 +295,15 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		return
 	}
 
-	if err := checkSlashPermissions(command); err != nil {
+	rootCmd := initCommands(w, command)
+
+	if err := checkSlashPermissions(command, rootCmd); err != nil {
 		WriteErrorResponse(w, err)
 		return
 	}
 
 	// Output Buffer
 	outBuf := &bytes.Buffer{}
-
-	rootCmd := initCommands(w, command)
 
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
