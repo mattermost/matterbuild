@@ -170,7 +170,8 @@ func checkSlashPermissions(command *MMSlashCommand, rootCmd *cobra.Command) *App
 		return NewError("You don't have permissions to use this command.", nil)
 	}
 
-	if command.Command == "cut" || command.Command == "cutplugin" {
+	subCommand, _, _ := rootCmd.Find(strings.Fields(strings.TrimSpace(command.Text)))
+	if subCommand.Name() == "cut" || subCommand.Name() == "cutplugin" {
 		hasPermissions = false
 		for _, allowedUser := range Cfg.ReleaseUsers {
 			if allowedUser == command.UserId {
