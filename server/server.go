@@ -257,6 +257,16 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
+	var setLatestReleaseURLCmd = &cobra.Command{
+		Use:   "latestURL [--repo]",
+		Short: "Set the latest URLs.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			repo, _ := cmd.Flags().GetString("repo")
+			return setLatestReleaseURLCmdF(w, command, repo)
+		},
+	}
+	setLatestReleaseURLCmd.Flags().String("repo", "", "Set this flag for the release repository.")
+
 	var runJobCmd = &cobra.Command{
 		Use:   "runjob",
 		Short: "Run a job on Jenkins.",
@@ -300,7 +310,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
 
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd)
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd, setLatestReleaseURLCmd)
 
 	err = rootCmd.Execute()
 
@@ -488,6 +498,34 @@ func setCIBranchCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlash
 	LogInfo("CI servers now pointed at " + args[0])
 	msg := fmt.Sprintf("CI servers now pointed at **%v**", args[0])
 	WriteEnrichedResponse(w, "CI Servers", msg, "#0060aa", IN_CHANNEL)
+	return nil
+}
+
+func setLatestReleaseURLCmdF(w http.ResponseWriter, slashCommand *MMSlashCommand, repo string) error {
+	LogInfo(repo)
+	if repo == "" {
+		WriteErrorResponse(w, NewError("Repository should not be empty", nil))
+		return nil
+	}
+
+	// Get release link if possible
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: Cfg.GithubAccessToken})
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+	if err := checkRepo(ctx, client, Cfg.GithubOrg, repo); err != nil {
+		WriteErrorResponse(w, NewError(err.Error(), nil))
+		return nil
+	}
+
+	release := "5.21.2"
+	if err := SetLatestURL(release); err != nil {
+		LogError("Error when setting the branch. err= " + err.Error())
+		return err
+	}
+
+	LogInfo("Latest URLS now updated to: " + release)
+
 	return nil
 }
 
