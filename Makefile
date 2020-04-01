@@ -37,8 +37,8 @@ gofmt:
 govet:
 	@echo Running govet
 	env GO111MODULE=off $(GO) get golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow
-	$(GO) vet -mod=vendor $(PACKAGES) || exit 1
-	$(GO) vet -mod=vendor -vettool=$(GOPATH)/bin/shadow $(PACKAGES) || exit 1
+	$(GO) vet $(PACKAGES) || exit 1
+	$(GO) vet -vettool=$(GOPATH)/bin/shadow $(PACKAGES) || exit 1
 	@echo Govet success
 
 ## Runs the matterbuild server.
@@ -49,12 +49,7 @@ run:
 ## Runs test against all packages.
 .PHONY: test
 test:
-	$(GO) test -mod=vendor -v -race ./...
-
-## Updates vendor dependencies.
-.PHONY: vendor
-vendor:
-	$(GO) mod vendor
+	$(GO) test -v -race ./...
 
 ## Builds matterbuild.
 .PHONY: build
@@ -63,7 +58,7 @@ build:
 
 	rm -rf dist/
 	mkdir -p dist/matterbuild
-	$(GO) build -mod=vendor
+	$(GO) build
 	mv matterbuild dist/matterbuild/
 	cp config.json dist/matterbuild/
 
