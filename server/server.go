@@ -145,7 +145,7 @@ func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	w.Write([]byte("This is the matterbuild server."))
 }
 
-func checkSlashPermissions(command *MMSlashCommand) *AppError {
+func checkSlashPermissions(command *MMSlashCommand, rootCmd *cobra.Command) *AppError {
 	hasPermissions := false
 	for _, allowedToken := range Cfg.AllowedTokens {
 		if allowedToken == command.Token {
@@ -170,7 +170,8 @@ func checkSlashPermissions(command *MMSlashCommand) *AppError {
 		return NewError("You don't have permissions to use this command.", nil)
 	}
 
-	if command.Command == "cut" || command.Command == "cutplugin" {
+	subCommand, _, _ := rootCmd.Find(strings.Fields(strings.TrimSpace(command.Text)))
+	if subCommand.Name() == "cut" || subCommand.Name() == "cutplugin" {
 		hasPermissions = false
 		for _, allowedUser := range Cfg.ReleaseUsers {
 			if allowedUser == command.UserId {
@@ -187,21 +188,7 @@ func checkSlashPermissions(command *MMSlashCommand) *AppError {
 	return nil
 }
 
-func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	command, err := ParseSlashCommand(r)
-	if err != nil {
-		WriteErrorResponse(w, NewError("Unable to parse incoming slash command info", err))
-		return
-	}
-
-	if err := checkSlashPermissions(command); err != nil {
-		WriteErrorResponse(w, err)
-		return
-	}
-
-	// Output Buffer
-	outBuf := &bytes.Buffer{}
-
+func initCommands(w http.ResponseWriter, command *MMSlashCommand) *cobra.Command {
 	var rootCmd = &cobra.Command{
 		Use:   "matterbuild",
 		Short: "Control of the build system though MM slash commands!",
@@ -309,10 +296,30 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		},
 	}
 
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd, setLatestReleaseURLCmd)
+
+	return rootCmd
+}
+
+func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	command, err := ParseSlashCommand(r)
+	if err != nil {
+		WriteErrorResponse(w, NewError("Unable to parse incoming slash command info", err))
+		return
+	}
+
+	rootCmd := initCommands(w, command)
+
+	if err := checkSlashPermissions(command, rootCmd); err != nil {
+		WriteErrorResponse(w, err)
+		return
+	}
+
+	// Output Buffer
+	outBuf := &bytes.Buffer{}
+
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
 	rootCmd.SetOutput(outBuf)
-
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd, setLatestReleaseURLCmd)
 
 	err = rootCmd.Execute()
 
@@ -476,7 +483,7 @@ git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Mark
 git push --set-upstream origin %[3]s
 git checkout master
 `, tag, repo, branch)
-		url := fmt.Sprintf("https://github.com/mattermost/mattermost-marketplace/compare/production...%s?quick_pull=1&labels=1:+UX+Review,2:+Dev+Review", branch)
+		url := fmt.Sprintf("https://github.com/mattermost/mattermost-marketplace/compare/production...%s?quick_pull=1&labels=2:+QA+Review,2:+Dev+Review", branch)
 		msg = fmt.Sprintf("Plugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.", tag, repo, releaseURL, marketplaceCommand, url)
 		color := "#0060aa"
 		if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Pluging Release Process", msg, color, IN_CHANNEL)); err != nil {
