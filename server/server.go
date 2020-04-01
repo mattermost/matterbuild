@@ -258,14 +258,16 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	}
 
 	var setLatestReleaseURLCmd = &cobra.Command{
-		Use:   "latestURL [--repo]",
+		Use:   "latestURL [--typeToRelease] [--ver]",
 		Short: "Set the latest URLs.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			repo, _ := cmd.Flags().GetString("repo")
-			return setLatestReleaseURLCmdF(w, command, repo)
+			typeToRelease, _ := cmd.Flags().GetString("typeToRelease")
+			releaseVer, _ := cmd.Flags().GetString("ver")
+			return setLatestReleaseURLCmdF(w, command, typeToRelease, releaseVer)
 		},
 	}
-	setLatestReleaseURLCmd.Flags().String("repo", "", "Set this flag for the release repository.")
+	setLatestReleaseURLCmd.Flags().String("typeToRelease", "", "Set the type of release - server, desktop or both.")
+	setLatestReleaseURLCmd.Flags().String("ver", "", "Set the version number to use.")
 
 	var runJobCmd = &cobra.Command{
 		Use:   "runjob",
@@ -384,7 +386,23 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 	} else {
 		msg := fmt.Sprintf("Release **%v** is on the way.", args[0])
 		WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", IN_CHANNEL)
+
+		// If this is a full release update the latest URLs
+		if rcPart == "" {
+			typeToRelease := "server"
+			if webapp != "" {
+				typeToRelease = "desktop"
+			}
+
+			if err := SetLatestURL(typeToRelease, releasePart, Cfg); err != nil {
+				LogError("Error when setting the latest URLs. err= " + err.Error())
+				return err
+			}
+			msg := fmt.Sprintf("Latest URLs for %s will also be updated to version: %s", typeToRelease, releasePart)
+			WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", IN_CHANNEL)
+		}
 	}
+
 	return nil
 }
 
@@ -501,30 +519,19 @@ func setCIBranchCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlash
 	return nil
 }
 
-func setLatestReleaseURLCmdF(w http.ResponseWriter, slashCommand *MMSlashCommand, repo string) error {
-	LogInfo(repo)
-	if repo == "" {
-		WriteErrorResponse(w, NewError("Repository should not be empty", nil))
+func setLatestReleaseURLCmdF(w http.ResponseWriter, slashCommand *MMSlashCommand, typeToRelease string, ver string) error {
+
+	if typeToRelease == "" || ver == "" {
+		WriteErrorResponse(w, NewError("Need to define which of the latest URLs should be updated and what version string to use", nil))
 		return nil
 	}
 
-	// Get release link if possible
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: Cfg.GithubAccessToken})
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
-	if err := checkRepo(ctx, client, Cfg.GithubOrg, repo); err != nil {
-		WriteErrorResponse(w, NewError(err.Error(), nil))
-		return nil
-	}
-
-	release := "5.21.2"
-	if err := SetLatestURL(release); err != nil {
-		LogError("Error when setting the branch. err= " + err.Error())
+	if err := SetLatestURL(typeToRelease, ver, Cfg); err != nil {
+		LogError("Error when setting the latest URLs. err= " + err.Error())
 		return err
 	}
 
-	LogInfo("Latest URLS now updated to: " + release)
+	LogInfo("Latest %s URLS now updated to: %s", typeToRelease, ver)
 
 	return nil
 }
