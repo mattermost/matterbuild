@@ -296,7 +296,7 @@ func initCommands(w http.ResponseWriter, command *MMSlashCommand) *cobra.Command
 		},
 	}
 
-	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd)
+	rootCmd.AddCommand(cutCmd, configDumpCmd, setCIBranchCmd, runJobCmd, checkCutReleaseStatusCmd, lockTranslationServerCmd, checkBranchTranslationCmd, cutPluginCmd, setLatestReleaseURLCmd)
 
 	return rootCmd
 }
