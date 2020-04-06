@@ -244,6 +244,18 @@ func initCommands(w http.ResponseWriter, command *MMSlashCommand) *cobra.Command
 		},
 	}
 
+	var setLatestReleaseURLCmd = &cobra.Command{
+		Use:   "latestURL [--typeToRelease] [--ver]",
+		Short: "Set the latest URLs.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			typeToRelease, _ := cmd.Flags().GetString("typeToRelease")
+			releaseVer, _ := cmd.Flags().GetString("ver")
+			return setLatestReleaseURLCmdF(w, command, typeToRelease, releaseVer)
+		},
+	}
+	setLatestReleaseURLCmd.Flags().String("typeToRelease", "", "Set the type of release - server, desktop or both.")
+	setLatestReleaseURLCmd.Flags().String("ver", "", "Set the version number to use.")
+
 	var runJobCmd = &cobra.Command{
 		Use:   "runjob",
 		Short: "Run a job on Jenkins.",
@@ -381,7 +393,23 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 	} else {
 		msg := fmt.Sprintf("Release **%v** is on the way.", args[0])
 		WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", IN_CHANNEL)
+
+		// If this is a full release update the latest URLs
+		if rcPart == "" {
+			typeToRelease := "server"
+			if webapp != "" {
+				typeToRelease = "desktop"
+			}
+
+			if err := SetLatestURL(typeToRelease, releasePart, Cfg); err != nil {
+				LogError("Error when setting the latest URLs. err= " + err.Error())
+				return err
+			}
+			msg := fmt.Sprintf("Latest URLs for %s will also be updated to version: %s", typeToRelease, releasePart)
+			WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", IN_CHANNEL)
+		}
 	}
+
 	return nil
 }
 
@@ -495,6 +523,23 @@ func setCIBranchCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlash
 	LogInfo("CI servers now pointed at " + args[0])
 	msg := fmt.Sprintf("CI servers now pointed at **%v**", args[0])
 	WriteEnrichedResponse(w, "CI Servers", msg, "#0060aa", IN_CHANNEL)
+	return nil
+}
+
+func setLatestReleaseURLCmdF(w http.ResponseWriter, slashCommand *MMSlashCommand, typeToRelease string, ver string) error {
+
+	if typeToRelease == "" || ver == "" {
+		WriteErrorResponse(w, NewError("Need to define which of the latest URLs should be updated and what version string to use", nil))
+		return nil
+	}
+
+	if err := SetLatestURL(typeToRelease, ver, Cfg); err != nil {
+		LogError("Error when setting the latest URLs. err= " + err.Error())
+		return err
+	}
+
+	LogInfo("Latest %s URLS now updated to: %s", typeToRelease, ver)
+
 	return nil
 }
 
