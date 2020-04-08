@@ -147,11 +147,11 @@ func generateNewRoutesForRelease(svc *s3.S3, cfg *MatterbuildConfig, result *s3.
 				addRoutingRule(*value.Key, fileSearchValue, params, "-ia32-linux-tar")
 			case strings.HasSuffix(switchValue, ver+"-linux-x64.tar.gz"):
 				addRoutingRule(*value.Key, fileSearchValue, params, "-x64-linux-tar")
-			case strings.Contains(switchValue, ver+"-linux-amd64.tar.gz"):
+			case strings.HasSuffix(switchValue, ver+"-linux-amd64.tar.gz"):
 				addRoutingRule(*value.Key, fileSearchValue, params, "-linux")
-			case strings.Contains(switchValue, ver+"-windows-amd64.zip"):
+			case strings.HasSuffix(switchValue, ver+"-windows-amd64.zip"):
 				addRoutingRule(*value.Key, fileSearchValue, params, "-windows")
-			case strings.Contains(switchValue, ver+"-osx-amd64.tar.gz"):
+			case strings.HasSuffix(switchValue, ver+"-osx-amd64.tar.gz"):
 				addRoutingRule(*value.Key, fileSearchValue, params, "-osx")
 			}
 
@@ -227,6 +227,11 @@ func SetLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) erro
 	}
 
 	generateNewRoutesForRelease(svc, cfg, result, "mattermost-desktop", ver, params)
+	if err != nil {
+		return err
+	}
+
+	generateNewRoutesForRelease(svc, cfg, result, "mattermost-team", ver, params)
 	if err != nil {
 		return err
 	}
