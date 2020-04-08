@@ -4,14 +4,19 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/pkg/errors"
 )
 
 // Get the existing wensite config if any exists
@@ -36,9 +41,14 @@ func getBucketConfig(svc *s3.S3, bucket string) (*s3.GetBucketWebsiteOutput, err
 	return result, nil
 }
 
-func checkIfBucketExistsWithPrefixAndWait(svc *s3.S3, cfg *MatterbuildConfig, ver string, typeToRelease string) (*s3.ListObjectsV2Output, error) {
+func checkBucket(svc *s3.S3, input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Output, error) {
+	result, err := svc.ListObjectsV2(input)
+	return result, err
+}
 
-	releaseBucket := "releases.mattermost.com"
+func checkIfBucketExistsWithPrefixAndWait(ctx context.Context, svc *s3.S3, cfg *MatterbuildConfig, ver string, typeToRelease string) (*s3.ListObjectsV2Output, error) {
+
+	releaseBucket := cfg.S3BucketNameForLatestURLs
 	s3Prefix := ver + "/"
 	if typeToRelease == "desktop" {
 		s3Prefix = "desktop/" + ver + "/"
@@ -47,27 +57,27 @@ func checkIfBucketExistsWithPrefixAndWait(svc *s3.S3, cfg *MatterbuildConfig, ve
 		Bucket: aws.String(releaseBucket),
 		Prefix: aws.String(s3Prefix),
 	}
-	result, err := svc.ListObjectsV2(input)
-	if err != nil {
-		if err, ok := err.(awserr.Error); ok {
-			switch err.Code() {
-			default:
-				fmt.Println(err.Error())
-				return nil, err
-			}
-		} else {
-			// Print the error, cast err to awserr.Error to get the Code and
-			// Message from an error.
-			fmt.Println(err.Error())
-			return nil, err
-		}
-	} else {
-		if *result.KeyCount == int64(0) {
-			LogInfo("Key count is 0")
-		}
+
+	LogInfo("Checking for s3 bucket: %s", releaseBucket+"/"+s3Prefix)
+	result, _ := checkBucket(svc, input)
+	if *result.KeyCount != int64(0) {
+		return result, nil
 	}
 
-	return result, err
+	for {
+		select {
+		case <-ctx.Done():
+			LogError("Timed out waiting for %s to be created", releaseBucket+"/"+s3Prefix)
+			return nil, ctx.Err()
+		case <-time.After(5 * time.Minute):
+			result, _ = checkBucket(svc, input)
+			if *result.KeyCount != int64(0) {
+				return result, nil
+			}
+			timeLeft, _ := ctx.Deadline()
+			LogInfo("Release %s is not available; waiting until: %s", releaseBucket+"/"+s3Prefix, timeLeft.Format("15:04:05"))
+		}
+	}
 }
 
 func preserverExistingRoutingRules(svc *s3.S3, cfg *MatterbuildConfig, typeToRelease string, params s3.PutBucketWebsiteInput) error {
@@ -164,16 +174,30 @@ func generateURLTextFile(cfg *MatterbuildConfig, params *s3.PutBucketWebsiteInpu
 	return txtToReturn, nil
 }
 
+func uploadIndexFile(awsSession client.ConfigProvider, cfg *MatterbuildConfig, txtFile string) error {
+	uploader := s3manager.NewUploader(awsSession)
+	result, err := uploader.Upload(&s3manager.UploadInput{
+		Bucket:      aws.String(cfg.S3BucketNameForLatestURLs),
+		Key:         aws.String("index.html"),
+		Body:        strings.NewReader(txtFile),
+		ContentType: aws.String("text/plain"),
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to upload file, index.html")
+	}
+	LogInfo("File uploaded to, %s\n", result.Location)
+
+	return nil
+}
+
 // SetLatestURL updates the S3 website routing configuration
 func SetLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) error {
 
-	// User AWS Creds from the config.json
 	creds := credentials.NewStaticCredentials(cfg.S3LatestAWSAccessKey, cfg.S3LatestAWSSecretKey, "")
 	awsCfg := aws.NewConfig().WithRegion(cfg.S3LatestAWSRegion).WithCredentials(creds)
 	awsSession := session.Must(session.NewSession(awsCfg))
 	svc := s3.New(awsSession)
 
-	// Create SetBucketWebsite parameter structure
 	params := s3.PutBucketWebsiteInput{
 		Bucket: aws.String(cfg.S3BucketNameForLatestURLs),
 		WebsiteConfiguration: &s3.WebsiteConfiguration{
@@ -184,7 +208,10 @@ func SetLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) erro
 		},
 	}
 
-	result, err := checkIfBucketExistsWithPrefixAndWait(svc, cfg, ver, typeToRelease)
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Minute)
+	defer cancel()
+
+	result, err := checkIfBucketExistsWithPrefixAndWait(ctx, svc, cfg, ver, typeToRelease)
 	if err != nil {
 		return err
 	}
@@ -209,9 +236,8 @@ func SetLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) erro
 		return err
 	}
 	fmt.Println(txtFile)
+	uploadIndexFile(awsSession, cfg, txtFile)
 
-	// Set the website configuration on the bucket. Replacing any existing
-	// configuration.
 	_, err = svc.PutBucketWebsite(&params)
 	if err != nil {
 		LogError("Unable to set bucket %q website configuration, %v", cfg.S3BucketNameForLatestURLs, err)
