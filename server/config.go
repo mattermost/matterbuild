@@ -18,6 +18,7 @@ type MatterbuildConfig struct {
 	S3LatestAWSAccessKey      string
 	S3LatestAWSSecretKey      string
 	S3LatestAWSRegion         string
+	S3ReleaseBucket           string
 
 	AllowedTokens []string
 	AllowedUsers  []string

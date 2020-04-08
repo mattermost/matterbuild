@@ -48,7 +48,7 @@ func checkBucket(svc *s3.S3, input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Out
 
 func checkIfBucketExistsWithPrefixAndWait(ctx context.Context, svc *s3.S3, cfg *MatterbuildConfig, ver string, typeToRelease string) (*s3.ListObjectsV2Output, error) {
 
-	releaseBucket := cfg.S3BucketNameForLatestURLs
+	releaseBucket := cfg.S3ReleaseBucket
 	s3Prefix := ver + "/"
 	if typeToRelease == "desktop" {
 		s3Prefix = "desktop/" + ver + "/"
