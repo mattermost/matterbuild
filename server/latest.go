@@ -88,14 +88,19 @@ func preserverExistingRoutingRules(svc *s3.S3, cfg *MatterbuildConfig, typeToRel
 		return err
 	}
 
-	valueToCheck := typeToRelease
-	if typeToRelease == "server" {
-		valueToCheck = "enterprise"
-	}
-
 	// Check for Routing Rules that are not related to the typeToRelease value and carry them forward
 	for _, value := range bucketConfig.RoutingRules {
-		if !strings.Contains(*value.Condition.KeyPrefixEquals, valueToCheck) {
+		checked := false
+
+		if typeToRelease == "desktop" {
+			checked = (strings.Contains(*value.Condition.KeyPrefixEquals, "enterprise") || strings.Contains(*value.Condition.KeyPrefixEquals, "team"))
+		}
+
+		if typeToRelease == "server" {
+			checked = strings.Contains(*value.Condition.KeyPrefixEquals, "desktop")
+		}
+
+		if checked {
 			params.WebsiteConfiguration.RoutingRules = append(params.WebsiteConfiguration.RoutingRules, value)
 			LogInfo("Copying rule %s forward as it is not being updated", *value.Condition.KeyPrefixEquals)
 		}
@@ -165,7 +170,7 @@ func generateURLTextFile(cfg *MatterbuildConfig, params *s3.PutBucketWebsiteInpu
 	txtToReturn := ""
 	maxLen := len(params.WebsiteConfiguration.RoutingRules)
 	for len, value := range params.WebsiteConfiguration.RoutingRules {
-		txtToReturn += "http://" + cfg.S3BucketNameForLatestURLs + "/" + *value.Condition.KeyPrefixEquals
+		txtToReturn += "https://" + cfg.S3BucketNameForLatestURLs + "/" + *value.Condition.KeyPrefixEquals
 		if len != maxLen-1 {
 			txtToReturn += "\n"
 		}
