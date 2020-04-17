@@ -93,7 +93,7 @@ func preserverExistingRoutingRules(svc *s3.S3, cfg *MatterbuildConfig, typeToRel
 		checked := false
 
 		if typeToRelease == "desktop" {
-			checked = (strings.Contains(*value.Condition.KeyPrefixEquals, "enterprise") || strings.Contains(*value.Condition.KeyPrefixEquals, "team"))
+			checked = strings.Contains(*value.Condition.KeyPrefixEquals, "enterprise") || strings.Contains(*value.Condition.KeyPrefixEquals, "team")
 		}
 
 		if typeToRelease == "server" {
