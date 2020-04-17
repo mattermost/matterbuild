@@ -20,7 +20,7 @@ import (
 )
 
 // SetLatestURL updates the S3 website routing configuration
-func setLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) error {
+func SetLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) error {
 	creds := credentials.NewStaticCredentials(cfg.S3LatestAWSAccessKey, cfg.S3LatestAWSSecretKey, "")
 	awsCfg := aws.NewConfig().WithRegion(cfg.S3LatestAWSRegion).WithCredentials(creds)
 	awsSession := session.Must(session.NewSession(awsCfg))
@@ -49,17 +49,17 @@ func setLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) erro
 		return err
 	}
 
-	err = generateNewRoutesForRelease(cfg, result, "mattermost-enterprise", ver, params)
+	err = generateNewRoutesForRelease(result, "mattermost-enterprise", ver, params)
 	if err != nil {
 		return err
 	}
 
-	generateNewRoutesForRelease(cfg, result, "mattermost-desktop", ver, params)
+	generateNewRoutesForRelease(result, "mattermost-desktop", ver, params)
 	if err != nil {
 		return err
 	}
 
-	generateNewRoutesForRelease(cfg, result, "mattermost-team", ver, params)
+	generateNewRoutesForRelease(result, "mattermost-team", ver, params)
 	if err != nil {
 		return err
 	}

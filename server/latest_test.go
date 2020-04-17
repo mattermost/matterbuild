@@ -66,7 +66,6 @@ var s3ObjectOutput *s3.ListObjectsV2Output = &s3.ListObjectsV2Output{
 
 func Test_generateNewRoutesForRelease(t *testing.T) {
 	type args struct {
-		cfg             *MatterbuildConfig
 		result          *s3.ListObjectsV2Output
 		fileSearchValue string
 		ver             string
@@ -87,7 +86,6 @@ func Test_generateNewRoutesForRelease(t *testing.T) {
 		{
 			name: "Server",
 			args: args{
-				Cfg,
 				s3ObjectOutput,
 				"mattermost-enterprise",
 				"5.21.0",
@@ -106,7 +104,6 @@ func Test_generateNewRoutesForRelease(t *testing.T) {
 		{
 			name: "Server",
 			args: args{
-				Cfg,
 				s3ObjectOutput,
 				"mattermost-team",
 				"5.21.0",
@@ -125,7 +122,6 @@ func Test_generateNewRoutesForRelease(t *testing.T) {
 		{
 			name: "Desktop",
 			args: args{
-				Cfg,
 				s3ObjectOutput,
 				"mattermost-desktop",
 				"4.4.0",
@@ -145,7 +141,7 @@ func Test_generateNewRoutesForRelease(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := generateNewRoutesForRelease(tt.args.cfg, tt.args.result, tt.args.fileSearchValue, tt.args.ver, tt.args.params); (err != nil) != tt.wantErr {
+			if err := generateNewRoutesForRelease(tt.args.result, tt.args.fileSearchValue, tt.args.ver, tt.args.params); (err != nil) != tt.wantErr {
 				t.Errorf("generateNewRoutesForRelease() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			assert.NotEmpty(t, tt.args.params.WebsiteConfiguration.RoutingRules, "The Routing Rules should not be empty")
