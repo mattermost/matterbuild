@@ -19,9 +19,69 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Get the existing wensite config if any exists
-func getBucketConfig(svc *s3.S3, bucket string) (*s3.GetBucketWebsiteOutput, error) {
+// SetLatestURL updates the S3 website routing configuration
+func setLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) error {
+	creds := credentials.NewStaticCredentials(cfg.S3LatestAWSAccessKey, cfg.S3LatestAWSSecretKey, "")
+	awsCfg := aws.NewConfig().WithRegion(cfg.S3LatestAWSRegion).WithCredentials(creds)
+	awsSession := session.Must(session.NewSession(awsCfg))
+	svc := s3.New(awsSession)
 
+	params := s3.PutBucketWebsiteInput{
+		Bucket: aws.String(cfg.S3BucketNameForLatestURLs),
+		WebsiteConfiguration: &s3.WebsiteConfiguration{
+			IndexDocument: &s3.IndexDocument{
+				Suffix: aws.String("index.html"),
+			},
+			RoutingRules: []*s3.RoutingRule{},
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Minute)
+	defer cancel()
+
+	result, err := checkIfBucketExistsWithPrefixAndWait(ctx, svc, cfg, ver, typeToRelease)
+	if err != nil {
+		return err
+	}
+
+	err = preserverExistingRoutingRules(svc, cfg, typeToRelease, params)
+	if err != nil {
+		return err
+	}
+
+	err = generateNewRoutesForRelease(cfg, result, "mattermost-enterprise", ver, params)
+	if err != nil {
+		return err
+	}
+
+	generateNewRoutesForRelease(cfg, result, "mattermost-desktop", ver, params)
+	if err != nil {
+		return err
+	}
+
+	generateNewRoutesForRelease(cfg, result, "mattermost-team", ver, params)
+	if err != nil {
+		return err
+	}
+
+	txtFile, err := generateURLTextFile(cfg, &params)
+	if err != nil {
+		return err
+	}
+	fmt.Println(txtFile)
+	uploadIndexFile(awsSession, cfg, txtFile)
+
+	_, err = svc.PutBucketWebsite(&params)
+	if err != nil {
+		LogError("Unable to set bucket %q website configuration, %v", cfg.S3BucketNameForLatestURLs, err)
+	}
+
+	return nil
+
+}
+
+// Get the existing website config if any exists
+func getBucketConfig(svc *s3.S3, bucket string) (*s3.GetBucketWebsiteOutput, error) {
 	input := &s3.GetBucketWebsiteInput{
 		Bucket: aws.String(bucket),
 	}
@@ -47,7 +107,6 @@ func checkBucket(svc *s3.S3, input *s3.ListObjectsV2Input) (*s3.ListObjectsV2Out
 }
 
 func checkIfBucketExistsWithPrefixAndWait(ctx context.Context, svc *s3.S3, cfg *MatterbuildConfig, ver string, typeToRelease string) (*s3.ListObjectsV2Output, error) {
-
 	releaseBucket := cfg.S3ReleaseBucket
 	s3Prefix := ver + "/"
 	if typeToRelease == "desktop" {
@@ -81,7 +140,6 @@ func checkIfBucketExistsWithPrefixAndWait(ctx context.Context, svc *s3.S3, cfg *
 }
 
 func preserverExistingRoutingRules(svc *s3.S3, cfg *MatterbuildConfig, typeToRelease string, params s3.PutBucketWebsiteInput) error {
-
 	bucketConfig, err := getBucketConfig(svc, cfg.S3BucketNameForLatestURLs)
 	if err != nil {
 		LogError("Unable to get the %s AWS Bucket Website Config.", cfg.S3BucketNameForLatestURLs)
@@ -127,7 +185,6 @@ func addRoutingRule(file string, keyToUse string, params s3.PutBucketWebsiteInpu
 }
 
 func generateNewRoutesForRelease(result *s3.ListObjectsV2Output, fileSearchValue string, ver string, params s3.PutBucketWebsiteInput) error {
-
 	for _, value := range result.Contents {
 		if strings.Contains(*value.Key, fileSearchValue) && !strings.Contains(*value.Key, ".sig") {
 			switchValue := *value.Key
@@ -193,66 +250,4 @@ func uploadIndexFile(awsSession client.ConfigProvider, cfg *MatterbuildConfig, t
 	LogInfo("File uploaded to, %s\n", result.Location)
 
 	return nil
-}
-
-// SetLatestURL updates the S3 website routing configuration
-func setLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) error {
-
-	creds := credentials.NewStaticCredentials(cfg.S3LatestAWSAccessKey, cfg.S3LatestAWSSecretKey, "")
-	awsCfg := aws.NewConfig().WithRegion(cfg.S3LatestAWSRegion).WithCredentials(creds)
-	awsSession := session.Must(session.NewSession(awsCfg))
-	svc := s3.New(awsSession)
-
-	params := s3.PutBucketWebsiteInput{
-		Bucket: aws.String(cfg.S3BucketNameForLatestURLs),
-		WebsiteConfiguration: &s3.WebsiteConfiguration{
-			IndexDocument: &s3.IndexDocument{
-				Suffix: aws.String("index.html"),
-			},
-			RoutingRules: []*s3.RoutingRule{},
-		},
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Minute)
-	defer cancel()
-
-	result, err := checkIfBucketExistsWithPrefixAndWait(ctx, svc, cfg, ver, typeToRelease)
-	if err != nil {
-		return err
-	}
-
-	err = preserverExistingRoutingRules(svc, cfg, typeToRelease, params)
-	if err != nil {
-		return err
-	}
-
-	err = generateNewRoutesForRelease(cfg, result, "mattermost-enterprise", ver, params)
-	if err != nil {
-		return err
-	}
-
-	generateNewRoutesForRelease(cfg, result, "mattermost-desktop", ver, params)
-	if err != nil {
-		return err
-	}
-
-	generateNewRoutesForRelease(cfg, result, "mattermost-team", ver, params)
-	if err != nil {
-		return err
-	}
-
-	txtFile, err := generateURLTextFile(cfg, &params)
-	if err != nil {
-		return err
-	}
-	fmt.Println(txtFile)
-	uploadIndexFile(awsSession, cfg, txtFile)
-
-	_, err = svc.PutBucketWebsite(&params)
-	if err != nil {
-		LogError("Unable to set bucket %q website configuration, %v", cfg.S3BucketNameForLatestURLs, err)
-	}
-
-	return nil
-
 }
