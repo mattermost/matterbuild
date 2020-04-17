@@ -14,12 +14,10 @@ import (
 	"strings"
 
 	"github.com/bndr/gojenkins"
-	"github.com/google/go-github/github"
 	"github.com/gorilla/schema"
 	"github.com/julienschmidt/httprouter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"golang.org/x/oauth2"
 
 	"github.com/mattermost/matterbuild/utils"
 )
@@ -222,18 +220,20 @@ func initCommands(w http.ResponseWriter, command *MMSlashCommand) *cobra.Command
 	}
 
 	var cutPluginCmd = &cobra.Command{
-		Use:   "cutplugin [--tag] [--repo] [--force]",
+		Use:   "cutplugin [--tag] [--repo] [--commitSHA] [--force]",
 		Short: "Cut a release of any plugin under Mattermost Organization",
 		Long:  "Cut a release of any plugin under Mattermost Organization.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			tag, _ := cmd.Flags().GetString("tag")
 			repo, _ := cmd.Flags().GetString("repo")
+			commitSHA, _ := cmd.Flags().GetString("commitSHA")
 			force, _ := cmd.Flags().GetBool("force")
-			return cutPluginCommandF(w, command, tag, repo, force)
+			return cutPluginCommandF(w, command, tag, repo, commitSHA, force)
 		},
 	}
 	cutPluginCmd.Flags().String("tag", "", "Set this flag for the tag you want to release.")
 	cutPluginCmd.Flags().String("repo", "", "Set this flag for the plugin repository.")
+	cutPluginCmd.Flags().String("commitSHA", "", "Set this flag for the commit you want to use for the tag. Defaults to master's tip.")
 	cutPluginCmd.Flags().Bool("force", false, "Set this flag to regenerate assets for a given repository.")
 
 	var setCIBranchCmd = &cobra.Command{
@@ -385,7 +385,7 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 	return nil
 }
 
-func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag, repo string, force bool) error {
+func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag, repo, commitSHA string, force bool) error {
 	pluginTag := regexp.MustCompile(pluginTagRegex)
 	if tag == "" {
 		WriteErrorResponse(w, NewError("Tag should not be empty", nil))
@@ -403,16 +403,14 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	}
 
 	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: Cfg.GithubAccessToken})
-	tc := oauth2.NewClient(ctx, ts)
-	client := github.NewClient(tc)
+	client := NewGithubClient(ctx, Cfg.GithubAccessToken)
 	if err := checkRepo(ctx, client, Cfg.GithubOrg, repo); err != nil {
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
 	}
 
 	msg := fmt.Sprintf("Tag %s created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", tag)
-	if err := createTag(ctx, client, Cfg.GithubOrg, tag, repo); errors.Is(err, ErrTagExists) {
+	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
 		if !force {
 			WriteErrorResponse(w, NewError(fmt.Errorf("Tag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", tag).Error(), nil))
 			return nil

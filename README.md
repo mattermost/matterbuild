@@ -36,7 +36,7 @@ $ make test
 3. Set Request URL to `http://localhost:5001/slash_command`
 4. Set Request Method to `POST`
 5. Click `Save`
-6. Navigate to any channel and type `/matterbuild cutplugin --tag v0.4.1 --repo mattermost-plugin-demo`
+6. Navigate to any channel and type `/matterbuild cutplugin --tag v0.6.3 --repo mattermost-plugin-demo --commitSHA 24dbd65762612fb72af6e7c30b40e9e8d0a90968`
 
 ### Test via curl
 
