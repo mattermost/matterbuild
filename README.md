@@ -29,6 +29,12 @@ Running all tests:
 $ make test
 ```
 
+Generate github mocks:
+
+```
+$ make mocks
+```
+
 ### Setting up slash command in Mattermost
 
 1. Navigate to http://localhost:8065/_redirect/integrations/commands/add
@@ -36,7 +42,7 @@ $ make test
 3. Set Request URL to `http://localhost:5001/slash_command`
 4. Set Request Method to `POST`
 5. Click `Save`
-6. Navigate to any channel and type `/matterbuild cutplugin --tag v0.4.1 --repo mattermost-plugin-demo`
+6. Navigate to any channel and type `/matterbuild cutplugin --tag v0.6.3 --repo mattermost-plugin-demo --commitSHA 24dbd65762612fb72af6e7c30b40e9e8d0a90968`
 
 ### Test via curl
 

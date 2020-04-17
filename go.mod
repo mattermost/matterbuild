@@ -8,6 +8,7 @@ require (
 	github.com/beevik/etree v0.0.0-20170211013203-1095c300fba6
 	github.com/bndr/gojenkins v0.2.1-0.20170319170142-e382c473d545
 	github.com/eugenmayer/go-sshclient v0.0.0-20190908070959-1e92f9869e7c
+	github.com/golang/mock v1.4.3
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/gorilla/schema v0.0.0-20170317173100-f3c80893412c

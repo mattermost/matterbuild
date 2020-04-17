@@ -41,7 +41,7 @@ var ErrTagExists = errors.New("tag already exists.")
 // This generates:
 // 1. Plugin signature (uploaded to github)
 // 2. Platform specific plugin tars and their signatures (uploaded to s3 release bucket)
-func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *github.Client, owner, repositoryName, tag string) error {
+func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient, owner, repositoryName, tag string) error {
 	pluginAsset, err := getPluginAsset(ctx, client, owner, repositoryName, tag)
 	if err != nil {
 		return errors.Wrap(err, "failed to get plugin asset")
@@ -102,7 +102,7 @@ func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *github.Clien
 	return nil
 }
 
-func checkRepo(ctx context.Context, client *github.Client, owner, repo string) error {
+func checkRepo(ctx context.Context, client *GithubClient, owner, repo string) error {
 	result, _, err := client.Search.Repositories(ctx, fmt.Sprintf("repo:%s/%s", owner, repo), nil)
 	if err != nil {
 		return errors.Wrapf(err, "failed to fetch github repo %s", repo)
@@ -115,7 +115,7 @@ func checkRepo(ctx context.Context, client *github.Client, owner, repo string) e
 	return nil
 }
 
-func getReleaseByTag(ctx context.Context, client *github.Client, owner, repositoryName, tag string) (*github.RepositoryRelease, error) {
+func getReleaseByTag(ctx context.Context, client *GithubClient, owner, repositoryName, tag string) (*github.RepositoryRelease, error) {
 	release, _, err := client.Repositories.GetReleaseByTag(ctx, owner, repositoryName, tag)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get release by tag")
@@ -124,9 +124,9 @@ func getReleaseByTag(ctx context.Context, client *github.Client, owner, reposito
 	return release, nil
 }
 
-// createTag creates a new tag at master for repo.
+// createTag creates a new tag at the given commit for the repository.
 // Returns ErrTagExists if tag already exists, nil if successful and an error otherwise.
-func createTag(ctx context.Context, client *github.Client, owner, tag, repository string) error {
+func createTag(ctx context.Context, client *GithubClient, owner, repository, tag, commitSHA string) error {
 	refs, _, err := client.Git.GetRefs(ctx, owner, repository, fmt.Sprintf("tags/%s", tag))
 	if err != nil {
 		var gerr *github.ErrorResponse
@@ -139,24 +139,41 @@ func createTag(ctx context.Context, client *github.Client, owner, tag, repositor
 		return ErrTagExists
 	}
 
-	ref, _, err := client.Git.GetRef(ctx, owner, repository, "heads/master")
-	if err != nil {
-		return errors.Wrap(err, "failed to get github ref")
+	if commitSHA == "" {
+		// Use master's tip if commitSHA is not provided
+		var ref *github.Reference
+		ref, _, err = client.Git.GetRef(ctx, owner, repository, "heads/master")
+		if err != nil {
+			return errors.Wrap(err, "failed to get github ref")
+		}
+
+		commitSHA = *ref.Object.SHA
+	} else {
+		// Check if sha exists
+		_, _, err = client.Repositories.GetCommit(ctx, owner, repository, commitSHA)
+		if err != nil {
+			return errors.Wrap(err, "failed to fetch sha details")
+		}
 	}
 
-	tags := &github.Tag{
+	tagObject := &github.GitObject{
+		SHA:  github.String(commitSHA),
+		Type: github.String("commit"),
+	}
+
+	githubTag := &github.Tag{
 		Tag:     github.String(tag),
 		Message: github.String(tag),
-		Object:  ref.Object,
+		Object:  tagObject,
 	}
 
-	if _, _, err = client.Git.CreateTag(ctx, owner, repository, tags); err != nil {
+	if _, _, err = client.Git.CreateTag(ctx, owner, repository, githubTag); err != nil {
 		return errors.Wrap(err, "failed to create tag")
 	}
 
 	refTag := &github.Reference{
 		Ref:    github.String(fmt.Sprintf("tags/%s", tag)),
-		Object: ref.Object,
+		Object: tagObject,
 	}
 
 	if _, _, err = client.Git.CreateRef(ctx, owner, repository, refTag); err != nil {
@@ -459,7 +476,7 @@ func downloadAsset(ctx context.Context, asset *github.ReleaseAsset, folder strin
 }
 
 // getPluginAsset polls till it finds the plugin tar file.
-func getPluginAsset(ctx context.Context, githubClient *github.Client, owner, repo, tag string) (*github.ReleaseAsset, error) {
+func getPluginAsset(ctx context.Context, githubClient *GithubClient, owner, repo, tag string) (*github.ReleaseAsset, error) {
 	LogInfo("Checking if the release asset is available")
 
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
@@ -506,7 +523,7 @@ func getPluginAsset(ctx context.Context, githubClient *github.Client, owner, rep
 	}
 }
 
-func uploadFilesToGithub(ctx context.Context, githubClient *github.Client, owner, repo, tag string, filePaths []string) error {
+func uploadFilesToGithub(ctx context.Context, githubClient *GithubClient, owner, repo, tag string, filePaths []string) error {
 	LogInfo("Uploading files to github")
 
 	release, _, err := githubClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
@@ -547,7 +564,7 @@ func uploadFilesToGithub(ctx context.Context, githubClient *github.Client, owner
 	return nil
 }
 
-func getReleaseAsset(ctx context.Context, owner string, githubClient *github.Client, repositoryName string, releaseID int64, assetName string) (*github.ReleaseAsset, error) {
+func getReleaseAsset(ctx context.Context, owner string, githubClient *GithubClient, repositoryName string, releaseID int64, assetName string) (*github.ReleaseAsset, error) {
 	assets, _, err := githubClient.Repositories.ListReleaseAssets(ctx, owner, repositoryName, releaseID, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list release assets.")

@@ -62,6 +62,14 @@ build:
 	mv matterbuild dist/matterbuild/
 	cp config.json dist/matterbuild/
 
+## Generate mocks.
+.PHONY: mocks
+mocks:
+	go install github.com/golang/mock/mockgen
+	mockgen -package mocks -destination server/mocks/mock_github_repo.go github.com/mattermost/matterbuild/server GithubRepositoriesService
+	mockgen -package mocks -destination server/mocks/mock_github_search.go github.com/mattermost/matterbuild/server GithubSearchService
+	mockgen -package mocks -destination server/mocks/mock_github_git.go github.com/mattermost/matterbuild/server GithubGitService
+
 ## Packages matterbuild.
 .PHONY: package
 package: build
