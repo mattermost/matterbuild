@@ -29,6 +29,12 @@ Running all tests:
 $ make test
 ```
 
+Generate github mocks:
+
+```
+$ make mocks
+```
+
 ### Setting up slash command in Mattermost
 
 1. Navigate to http://localhost:8065/_redirect/integrations/commands/add

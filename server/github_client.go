@@ -12,6 +12,7 @@ import (
 )
 
 type GithubRepositoriesService interface {
+	GetCommit(ctx context.Context, owner, repo, sha string) (*github.RepositoryCommit, *github.Response, error)
 	ListTags(ctx context.Context, owner, repo string, opt *github.ListOptions) ([]*github.RepositoryTag, *github.Response, error)
 	GetReleaseByTag(ctx context.Context, owner, repo, tag string) (*github.RepositoryRelease, *github.Response, error)
 	ListReleaseAssets(ctx context.Context, owner, repo string, id int64, opt *github.ListOptions) ([]*github.ReleaseAsset, *github.Response, error)

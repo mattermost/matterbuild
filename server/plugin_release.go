@@ -139,20 +139,26 @@ func createTag(ctx context.Context, client *GithubClient, owner, repository, tag
 		return ErrTagExists
 	}
 
-	tagObject := &github.GitObject{
-		SHA:  github.String(commitSHA),
-		Type: github.String("commit"),
-	}
-
-	// Use master's tip if commitSHA is not provided
 	if commitSHA == "" {
+		// Use master's tip if commitSHA is not provided
 		var ref *github.Reference
 		ref, _, err = client.Git.GetRef(ctx, owner, repository, "heads/master")
 		if err != nil {
 			return errors.Wrap(err, "failed to get github ref")
 		}
 
-		tagObject.SHA = ref.Object.SHA
+		commitSHA = *ref.Object.SHA
+	} else {
+		// Check if sha exists
+		_, _, err = client.Repositories.GetCommit(ctx, owner, repository, commitSHA)
+		if err != nil {
+			return errors.Wrap(err, "failed to fetch sha details")
+		}
+	}
+
+	tagObject := &github.GitObject{
+		SHA:  github.String(commitSHA),
+		Type: github.String("commit"),
 	}
 
 	githubTag := &github.Tag{
