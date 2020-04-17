@@ -226,7 +226,7 @@ func setLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) erro
 		return err
 	}
 
-	generateNewRoutesForRelease(cfg, result, "mattermost-enterprise", ver, params)
+	err = generateNewRoutesForRelease(cfg, result, "mattermost-enterprise", ver, params)
 	if err != nil {
 		return err
 	}
