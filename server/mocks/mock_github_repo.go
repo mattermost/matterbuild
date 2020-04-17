@@ -8,6 +8,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	github "github.com/google/go-github/github"
+	io "io"
 	os "os"
 	reflect "reflect"
 )
@@ -48,6 +49,22 @@ func (m *MockGithubRepositoriesService) DeleteReleaseAsset(arg0 context.Context,
 func (mr *MockGithubRepositoriesServiceMockRecorder) DeleteReleaseAsset(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteReleaseAsset", reflect.TypeOf((*MockGithubRepositoriesService)(nil).DeleteReleaseAsset), arg0, arg1, arg2, arg3)
+}
+
+// DownloadReleaseAsset mocks base method
+func (m *MockGithubRepositoriesService) DownloadReleaseAsset(arg0 context.Context, arg1, arg2 string, arg3 int64) (io.ReadCloser, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadReleaseAsset", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(io.ReadCloser)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// DownloadReleaseAsset indicates an expected call of DownloadReleaseAsset
+func (mr *MockGithubRepositoriesServiceMockRecorder) DownloadReleaseAsset(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadReleaseAsset", reflect.TypeOf((*MockGithubRepositoriesService)(nil).DownloadReleaseAsset), arg0, arg1, arg2, arg3)
 }
 
 // GetCommit mocks base method

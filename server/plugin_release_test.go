@@ -4,6 +4,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/ioutil"
@@ -89,6 +90,17 @@ func TestArchiveContains(t *testing.T) {
 		require.Contains(t, found, "plugin-darwin-amd64")
 		require.Contains(t, found, "plugin-windows-amd64.exe")
 		require.Contains(t, found, "plugin-linux-amd64")
+	})
+
+	t.Run("archive should only match filenames and not full path", func(t *testing.T) {
+		found, err := archiveContains(filepath.Join("test", "mattermost-plugin-demo-v0.4.1.tar.gz"), "plugin")
+		require.NoError(t, err)
+		require.NotNil(t, found)
+		require.Len(t, found, 4)
+		require.Contains(t, found, "plugin-darwin-amd64")
+		require.Contains(t, found, "plugin-windows-amd64.exe")
+		require.Contains(t, found, "plugin-linux-amd64")
+		require.Contains(t, found, "plugin.json")
 	})
 
 	t.Run("archive returns no strings", func(t *testing.T) {
@@ -198,5 +210,65 @@ func TestCreateTag(t *testing.T) {
 
 		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
 		require.NoError(t, err)
+	})
+}
+
+func TestDownloadAsset(t *testing.T) {
+	t.Run("should error if nothing is downloaded", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		ctx := context.Background()
+
+		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
+		owner := "owner"
+		repoName := "repoName"
+
+		testClient := &GithubClient{
+			Repositories: repoMock,
+		}
+		asset := &github.ReleaseAsset{
+			ID:   github.Int64(5),
+			Name: github.String("test_asset"),
+		}
+		repoMock.EXPECT().DownloadReleaseAsset(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(asset.GetID())).Return(nil, "", nil)
+
+		tmpFolder, err := ioutil.TempDir("", "test")
+		require.NoError(t, err)
+		defer os.RemoveAll(tmpFolder)
+
+		assetFilePath, err := downloadAsset(ctx, testClient, owner, repoName, asset, tmpFolder)
+		require.Error(t, err)
+		require.Empty(t, assetFilePath)
+	})
+
+	t.Run("download github release asset", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		ctx := context.Background()
+
+		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
+		owner := "owner"
+		repoName := "repoName"
+
+		testClient := &GithubClient{
+			Repositories: repoMock,
+		}
+		asset := &github.ReleaseAsset{
+			ID:   github.Int64(5),
+			Name: github.String("test_asset"),
+		}
+		expectedData := "hello world"
+		rc := ioutil.NopCloser(bytes.NewReader([]byte(expectedData)))
+		repoMock.EXPECT().DownloadReleaseAsset(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(asset.GetID())).Return(rc, "", nil)
+
+		tmpFolder, err := ioutil.TempDir("", "test")
+		require.NoError(t, err)
+		defer os.RemoveAll(tmpFolder)
+
+		assetFilePath, err := downloadAsset(ctx, testClient, owner, repoName, asset, tmpFolder)
+		require.NoError(t, err)
+		require.Equal(t, filepath.Join(tmpFolder, "test_asset"), assetFilePath)
+
+		data, err := ioutil.ReadFile(assetFilePath)
+		require.NoError(t, err)
+		require.Equal(t, expectedData, string(data))
 	})
 }
