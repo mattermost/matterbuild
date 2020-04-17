@@ -133,7 +133,7 @@ func generateNewRoutesForRelease(result *s3.ListObjectsV2Output, fileSearchValue
 			switchValue := *value.Key
 			switch {
 			case strings.HasSuffix(switchValue, ".dmg"):
-				addRoutingRule(*value.Key, fileSearchValue, params, "-dmg")
+				_ = addRoutingRule(*value.Key, fileSearchValue, params, "-dmg")
 			case strings.HasSuffix(switchValue, ".exe"):
 				addRoutingRule(*value.Key, fileSearchValue, params, "-exe")
 			case strings.HasSuffix(switchValue, "amd64.deb"):
