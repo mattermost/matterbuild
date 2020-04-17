@@ -196,7 +196,7 @@ func uploadIndexFile(awsSession client.ConfigProvider, cfg *MatterbuildConfig, t
 }
 
 // SetLatestURL updates the S3 website routing configuration
-func SetLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) error {
+func setLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) error {
 
 	creds := credentials.NewStaticCredentials(cfg.S3LatestAWSAccessKey, cfg.S3LatestAWSSecretKey, "")
 	awsCfg := aws.NewConfig().WithRegion(cfg.S3LatestAWSRegion).WithCredentials(creds)
