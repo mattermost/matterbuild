@@ -5,6 +5,7 @@ package server
 
 import (
 	"context"
+	"io"
 	"os"
 
 	"github.com/google/go-github/github"
@@ -16,6 +17,7 @@ type GithubRepositoriesService interface {
 	ListTags(ctx context.Context, owner, repo string, opt *github.ListOptions) ([]*github.RepositoryTag, *github.Response, error)
 	GetReleaseByTag(ctx context.Context, owner, repo, tag string) (*github.RepositoryRelease, *github.Response, error)
 	ListReleaseAssets(ctx context.Context, owner, repo string, id int64, opt *github.ListOptions) ([]*github.ReleaseAsset, *github.Response, error)
+	DownloadReleaseAsset(ctx context.Context, owner, repo string, id int64) (rc io.ReadCloser, redirectURL string, err error)
 	UploadReleaseAsset(ctx context.Context, owner, repo string, id int64, opt *github.UploadOptions, file *os.File) (*github.ReleaseAsset, *github.Response, error)
 	DeleteReleaseAsset(ctx context.Context, owner, repo string, id int64) (*github.Response, error)
 }

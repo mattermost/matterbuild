@@ -54,7 +54,7 @@ func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient
 	}
 	defer os.RemoveAll(tmpFolder)
 
-	githubPluginFilePath, err := downloadAsset(ctx, pluginAsset, tmpFolder)
+	githubPluginFilePath, err := downloadAsset(ctx, client, owner, repositoryName, pluginAsset, tmpFolder)
 	if err != nil {
 		return errors.Wrap(err, "failed to download asset")
 	}
@@ -447,17 +447,15 @@ func createPlatformPlugin(pluginFilePath string, excludePlatforms []string, plat
 }
 
 // downloadAsset Downloads asset into a given folder and returns its path.
-func downloadAsset(ctx context.Context, asset *github.ReleaseAsset, folder string) (filePath string, err error) {
+func downloadAsset(ctx context.Context, client *GithubClient, owner, repositoryName string, asset *github.ReleaseAsset, folder string) (filePath string, err error) {
 	LogInfo("Downloading github release asset")
 
-	// Get the data
-	resp, err := http.Get(asset.GetBrowserDownloadURL())
+	rc, redirectURL, err := client.Repositories.DownloadReleaseAsset(ctx, owner, repositoryName, asset.GetID())
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to fetch asset %s,", asset.GetBrowserDownloadURL())
+		return "", errors.Wrapf(err, "failed to fetch asset %s,", asset.GetName())
 	}
-	defer resp.Body.Close()
 
-	// Create the file
+	// Create local file
 	pathToFile := filepath.Join(folder, asset.GetName())
 	out, err := os.Create(pathToFile)
 	if err != nil {
@@ -465,14 +463,32 @@ func downloadAsset(ctx context.Context, asset *github.ReleaseAsset, folder strin
 	}
 	defer out.Close()
 
-	// Write the body to file
-	_, err = io.Copy(out, resp.Body)
-	if err != nil {
-		return "", nil
+	if redirectURL != "" {
+		var resp *http.Response
+		resp, err = http.Get(redirectURL)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to fetch asset %s,", redirectURL)
+		}
+		defer resp.Body.Close()
+
+		_, err = io.Copy(out, resp.Body)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to copy resp.Body")
+		}
+
+		return pathToFile, nil
 	}
 
-	LogInfo("Done downloading")
-	return pathToFile, nil
+	if rc != nil {
+		_, err = io.Copy(out, rc)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to copy rc")
+		}
+
+		return pathToFile, nil
+	}
+
+	return "", errors.Errorf("failed to download release asset %s", asset.GetName())
 }
 
 // getPluginAsset polls till it finds the plugin tar file.
@@ -639,7 +655,7 @@ func hasAllPlatformBinaries(filePath string) error {
 
 	gzf, err := gzip.NewReader(f)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to read gzip data")
 	}
 
 	tarReader := tar.NewReader(gzf)
@@ -650,7 +666,7 @@ func hasAllPlatformBinaries(filePath string) error {
 			break
 		}
 		if err != nil {
-			return err
+			return errors.Wrap(err, "failed to read tar data")
 		}
 
 		name := header.Name
@@ -694,8 +710,9 @@ func archiveContains(filePath string, contains string) ([]string, error) {
 
 		switch header.Typeflag {
 		case tar.TypeReg:
-			if strings.Contains(header.Name, contains) {
-				result = append(result, filepath.Base(header.Name))
+			baseName := filepath.Base(header.Name)
+			if strings.Contains(baseName, contains) {
+				result = append(result, baseName)
 			}
 		}
 	}
