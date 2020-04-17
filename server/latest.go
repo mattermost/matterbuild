@@ -126,7 +126,7 @@ func addRoutingRule(file string, keyToUse string, params s3.PutBucketWebsiteInpu
 	return nil
 }
 
-func generateNewRoutesForRelease(cfg *MatterbuildConfig, result *s3.ListObjectsV2Output, fileSearchValue string, ver string, params s3.PutBucketWebsiteInput) error {
+func generateNewRoutesForRelease(result *s3.ListObjectsV2Output, fileSearchValue string, ver string, params s3.PutBucketWebsiteInput) error {
 
 	for _, value := range result.Contents {
 		if strings.Contains(*value.Key, fileSearchValue) && !strings.Contains(*value.Key, ".sig") {
