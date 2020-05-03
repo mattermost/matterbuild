@@ -77,6 +77,7 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		"IS_DRY_RUN":             isDryRunStr,
 		"IS_DOT_RELEASE":         isDotReleaseStr,
 		"IS_BACKPORT":            isDotReleaseStr,
+		"PIP_BRANCH":             releaseBranch,
 	}
 
 	if server != "" {
