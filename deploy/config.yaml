@@ -1,0 +1,54 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: matterbuild-config
+  labels:
+    app: matterbuild
+data:
+  config.json: |
+    {
+      "ListenAddress": "0.0.0.0:8080",
+      "JenkinsURL": "",
+      "JenkinsUsername": "",
+      "JenkinsPassword": "",
+      "S3BucketNameForLatestURLs": "",
+      "S3LatestAWSAccessKey": "",
+      "S3LatestAWSSecretKey": "",
+      "S3LatestAWSRegion": "",
+      "S3ReleaseBucket": "",
+      "AllowedTokens": [],
+      "AllowedUsers": [],
+      "ReleaseUsers": [],
+      "CIServerJobs": [],
+      "CIServerJenkinsUserName": "",
+      "CIServerJenkinsToken":"",
+      "CIServerJenkinsURL": "",
+      "ReleaseJob": "",
+      "ReleaseJobLegacy": "",
+      "TranslationServerJob": "",
+      "CheckTranslationServerJob": "",
+      "RCTestingJob": "",
+      "KubeDeployJob": "",
+      "GithubAccessToken": "",
+      "GithubUsername": "",
+      "Repositories": [
+        {
+          "Owner": "",
+          "Name": ""
+        },
+        {
+          "Owner": "",
+          "Name": ""
+        }
+      ],
+      "PluginSigningSSHPublicCertPath": "",
+      "PluginSigningSSHKeyPath": "",
+      "PluginSigningSSHUser": "",
+      "PluginSigningSSHHost": "",
+      "GithubOrg": "",
+      "PluginSigningAWSAccessKey": "",
+      "PluginSigningAWSSecretKey": "",
+      "PluginSigningAWSRegion": "",
+      "PluginSigningAWSS3PluginBucket": ""
+    }

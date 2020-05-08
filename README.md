@@ -10,29 +10,50 @@ Matterbuild is an internal Mattermost chatops tool for generating Mattermost rel
 
 ### Environment Setup
 
+Essentials:
+
 1. Install [Go](https://golang.org/doc/install)
 2. `brew install gnu-tar` for macOS
 
+Optionals:
+
+1. [Tilt](https://tilt.dev/) (to deploy on a local dev K8s cluster)
+2. [kind](https://kind.sigs.k8s.io/) (to spin up a local dev K8s cluster)
+
 ### Running
 
-Simply run the following:
+This project uses `tilt` to deploy to local Kubernetes cluster. In order to do this you need a local Kuberetes cluster (`kind` is recommended).
 
+```bash
+kind create cluster --name matterbuild
 ```
-$ make run
+
+Point `KUBECONFIG` to the newly created cluster, and start `tilt` and open [http://localhost:8080/](http://localhost:8080/):
+
+```shell
+make run
 ```
+
+**Note:** If you don't want to use Tilt or deploy to local cluster you can ignore it and simply start the binary server:
+
+```bash
+NOTILT=1 make run
+```
+
+Alternatively you can use `docker-compose` too, without the ability to autoreload changes automatically. If there's a change in the code you need to `docker-compose stop` and `docker-compose up --build` to build and deploy those new changes.
 
 ### Testing
 
 Running all tests:
 
-```
-$ make test
+```shell
+make test
 ```
 
 Generate github mocks:
 
-```
-$ make mocks
+```shell
+make mocks
 ```
 
 ### Setting up slash command in Mattermost
@@ -48,19 +69,21 @@ $ make mocks
 
 Invoke matterbuild commands using curl:
 
-```
+```shell
 curl -X POST http://localhost:5001/slash_command -d "command=/matterbuild&token=&user_id=" -d "text=cutplugin+--tag+v0.4.1+--repo+mattermost-plugin-demo" 
 ```
 
 ### Testing cutplugin
 
 To test the cutplugin you have to:
+
 1. Connect to [Mattermost VPN](https://developers.mattermost.com/internal/infrastructure/vpn/)
 2. Get AWS [Vault](https://developers.mattermost.com/internal/infrastructure/vault/) credentials
 3. Signed public certificate by Vault
 4. Generate Github Token
 5. Set following fields in `config.json` before running matterbuild
-```
+
+```json
 // Used to authenticate invoking slash command
 "AllowedTokens": ["irkngs1z4jrcz8t9aiyzu8zx3r", ""],
 "AllowedUsers": ["gcye3z5pnpgibkcfhpemsp78ey", ""],
@@ -78,4 +101,3 @@ To test the cutplugin you have to:
 "PluginSigningAWSRegion": "us-east-1",
 "PluginSigningAWSS3PluginBucket": "mattermost-toolkit-dev"
 ```
-

@@ -130,6 +130,7 @@ func Start() {
 
 	router := httprouter.New()
 	router.GET("/", indexHandler)
+	router.GET("/healthz", healthHandler)
 	router.POST("/slash_command", slashCommandHandler)
 
 	LogInfo("Running Matterbuild on port " + Cfg.ListenAddress)
@@ -140,6 +141,9 @@ func Start() {
 
 func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	w.Write([]byte("This is the matterbuild server."))
+}
+func healthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	w.Write([]byte("Healthy!"))
 }
 
 func checkSlashPermissions(command *MMSlashCommand, rootCmd *cobra.Command) *AppError {

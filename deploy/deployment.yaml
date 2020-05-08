@@ -1,0 +1,58 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matterbuild
+  labels:
+    app: matterbuild
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: matterbuild
+  template:
+    metadata:
+      labels:
+        app: matterbuild
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: matterbuild
+        image: mattermost/matterbuild
+        imagePullPolicy: Always
+        command:
+          - "matterbuild"
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: https
+          containerPort: 8443
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: 400Mi
+          requests:
+            cpu: 200m
+            memory: 100Mi
+        volumeMounts:
+        - name: volume-ssl
+          mountPath: /app/ssl/
+          readOnly: true
+        - name: volume-config
+          mountPath: /app/config/
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+      volumes:
+      - name: volume-ssl
+        secret:
+          secretName: matterbuild-cert
+      - name: volume-config
+        configMap:
+          name: matterbuild-config
+          items:
+          - key: config.json
+            path: config.json
