@@ -46,8 +46,17 @@ govet:
 
 ## Runs the matterbuild server.
 .PHONY: run
+run: NOTILT ?=
 run:
+ifeq (, $(shell which tilt))
 	go run matterbuild.go
+else
+ifneq (, $(NOTILT))
+	go run matterbuild.go
+else
+	tilt up --web-mode prod
+endif
+endif
 
 ## Runs test against all packages.
 .PHONY: test

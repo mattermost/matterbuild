@@ -10,15 +10,34 @@ Matterbuild is an internal Mattermost chatops tool for generating Mattermost rel
 
 ### Environment Setup
 
+Essentials:
+
 1. Install [Go](https://golang.org/doc/install)
 2. `brew install gnu-tar` for macOS
 
+Optionals:
+
+1. [Tilt](https://tilt.dev/) (to deploy on a local dev K8s cluster)
+2. [kind](https://kind.sigs.k8s.io/) (to spin up a local dev K8s cluster)
+
 ### Running
 
-Simply run the following:
+This project uses `tilt` to deploy to local Kubernetes cluster. In order to do this you need a local Kuberetes cluster (`kind` is recommended).
+
+```bash
+kind create cluster --name matterbuild
+```
+
+Point `KUBECONFIG` to the newly created cluster, and start `tilt` and open [http://localhost:8080/](http://localhost:8080/):
 
 ```shell
 make run
+```
+
+**Note:** If you don't want to use Tilt or deploy to local cluster you can ignore it and simply start the binary server:
+
+```bash
+NOTILT=1 make run
 ```
 
 ### Testing

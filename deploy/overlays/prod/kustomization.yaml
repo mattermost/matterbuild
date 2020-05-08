@@ -1,0 +1,20 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: matterbuild
+namePrefix: matterbuild-
+
+bases:
+- ../../base
+- ../../config
+
+resources:
+- ingress.yaml
+
+patchesStrategicMerge:
+- service.yaml
+
+images:
+- name: mattermost/matterbuild
+  newName: mattermost/matterbuild
+  digest: sha256:f5ce23856493aa10ee5e7ceab5bb61a87c467682a50ebcc5d0e6fff030b0250e
