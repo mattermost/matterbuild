@@ -21,6 +21,14 @@ jobs:
       - checkout
       - run: make build
 
+  docker:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run: make docker
+
 workflows:
   version: 2
   untagged-build:
@@ -28,6 +36,10 @@ workflows:
       - lint
       - test
       - build:
+          requires:
+            - lint
+            - test
+      - docker:
           requires:
             - lint
             - test
