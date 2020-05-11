@@ -423,7 +423,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	}
 
 	if _, err := semver.Parse(tag[1:]); err != nil {
-		WriteErrorResponse(w, NewError(fmt.Sprintf("Tag must adhere to semver after leading 'v': ", err.Error()), nil))
+		WriteErrorResponse(w, NewError(fmt.Sprintf("Tag must adhere to semver after leading 'v': %s", err.Error()), nil))
 		return nil
 	}
 
