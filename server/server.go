@@ -13,6 +13,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/blang/semver"
 	"github.com/bndr/gojenkins"
 	"github.com/gorilla/schema"
 	"github.com/julienschmidt/httprouter"
@@ -26,8 +27,6 @@ const (
 	IN_CHANNEL = "in_channel"
 	EPHEMERAL  = "ephemeral"
 )
-
-const pluginTagRegex = `^v[0-9]+\.[0-9]+\.[0-9]+$`
 
 type MMSlashCommand struct {
 	ChannelId   string `schema:"channel_id"`
@@ -414,14 +413,17 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 }
 
 func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag, repo, commitSHA string, force bool) error {
-	pluginTag := regexp.MustCompile(pluginTagRegex)
 	if tag == "" {
 		WriteErrorResponse(w, NewError("Tag should not be empty", nil))
 		return nil
 	}
-	if !pluginTag.MatchString(tag) {
-		msg := fmt.Sprintf("Bad tag. maybe a typo? you set this tag %s but we expected something like v2.3.4", tag)
-		WriteErrorResponse(w, NewError(msg, nil))
+	if tag[0] != 'v' {
+		WriteErrorResponse(w, NewError("Tag must start with leading 'v'", nil))
+		return nil
+	}
+
+	if _, err := semver.Parse(tag[1:]); err != nil {
+		WriteErrorResponse(w, NewError(fmt.Sprintf("Tag must adhere to semver after leading 'v': %s", err.Error()), nil))
 		return nil
 	}
 
