@@ -29,7 +29,7 @@ func LogCritical(msg string, args ...interface{}) {
 
 func Log(level string, msg string, args ...interface{}) {
 	log.Printf("%v %v\n", level, fmt.Sprintf(msg, args...))
-	f, err := os.OpenFile("matterbuild.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	f, err := os.OpenFile("matterbuild.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Printf("Failed to write to file")
 		return
