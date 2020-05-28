@@ -451,7 +451,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
-	WriteEnrichedResponse(w, "Pluging Release Process", msg, "#0060aa", IN_CHANNEL)
+	WriteEnrichedResponse(w, "Plugin Release Process", msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
 		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
@@ -483,7 +483,7 @@ git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Mark
 git push --set-upstream origin %[3]s
 git checkout master
 `, tag, repo, branch)
-		url := fmt.Sprintf("https://github.com/mattermost/mattermost-marketplace/compare/production...%s?quick_pull=1&labels=2:+QA+Review,2:+Dev+Review", branch)
+		url := fmt.Sprintf("https://github.com/mattermost/mattermost-marketplace/compare/production...%s?quick_pull=1&labels=3:+QA+Review,2:+Dev+Review", branch)
 		msg = fmt.Sprintf("Plugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.", tag, repo, releaseURL, marketplaceCommand, url)
 		color := "#0060aa"
 		if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Pluging Release Process", msg, color, IN_CHANNEL)); err != nil {
