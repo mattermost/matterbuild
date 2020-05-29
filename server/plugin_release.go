@@ -127,7 +127,8 @@ func getReleaseByTag(ctx context.Context, client *GithubClient, owner, repositor
 // createTag creates a new tag at the given commit for the repository.
 // Returns ErrTagExists if tag already exists, nil if successful and an error otherwise.
 func createTag(ctx context.Context, client *GithubClient, owner, repository, tag, commitSHA string) error {
-	refs, _, err := client.Git.GetRefs(ctx, owner, repository, fmt.Sprintf("tags/%s", tag))
+	tagRef := fmt.Sprintf("tags/%s", tag)
+	refs, _, err := client.Git.GetRefs(ctx, owner, repository, tagRef)
 	if err != nil {
 		var gerr *github.ErrorResponse
 		if errors.As(err, &gerr) && gerr.Response.StatusCode == http.StatusNotFound {
@@ -135,8 +136,11 @@ func createTag(ctx context.Context, client *GithubClient, owner, repository, tag
 		} else {
 			return errors.Wrapf(err, "failed to get github tag")
 		}
-	} else if len(refs) > 0 {
-		return ErrTagExists
+	}
+	for _, ref := range refs {
+		if strings.HasSuffix(ref.GetRef(), tagRef) {
+			return ErrTagExists
+		}
 	}
 
 	if commitSHA == "" {
