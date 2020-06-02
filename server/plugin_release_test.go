@@ -12,10 +12,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/github"
 	"github.com/mattermost/matterbuild/server/mocks"
-
-	"github.com/golang/mock/gomock"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 )
 
@@ -210,6 +210,106 @@ func TestCreateTag(t *testing.T) {
 
 		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
 		require.NoError(t, err)
+	})
+
+	t.Run("create tag that returns other matching tags", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		ctx := context.Background()
+
+		gitMock := mocks.NewMockGithubGitService(ctrl)
+		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
+		owner := "owner"
+		repoName := "repoName"
+		tag := "testTag"
+		commitSHA := "sha"
+
+		testClient := &GithubClient{
+			Git:          gitMock,
+			Repositories: repoMock,
+		}
+		refs := []*github.Reference{
+			{
+				Ref: github.String("tags/testTag-1"),
+			},
+			{
+				Ref: github.String("tags/testTag-2"),
+			},
+		}
+
+		gitMock.EXPECT().GetRefs(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(fmt.Sprintf("tags/%s", tag))).Return(refs, nil, nil)
+
+		githubObj := &github.GitObject{
+			SHA:  github.String(commitSHA),
+			Type: github.String("commit"),
+		}
+		githubTag := &github.Tag{
+			Tag:     github.String(tag),
+			Message: github.String(tag),
+			Object:  githubObj,
+		}
+		gitMock.EXPECT().CreateTag(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(githubTag)).Return(nil, nil, nil)
+		repoMock.EXPECT().GetCommit(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(commitSHA)).Return(nil, nil, nil)
+
+		refTag := &github.Reference{
+			Ref:    github.String(fmt.Sprintf("tags/%s", tag)),
+			Object: githubObj,
+		}
+		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
+
+		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
+		require.NoError(t, err)
+	})
+
+	t.Run("create tag that returns matching tags", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		ctx := context.Background()
+
+		gitMock := mocks.NewMockGithubGitService(ctrl)
+		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
+		owner := "owner"
+		repoName := "repoName"
+		tag := "testTag"
+		commitSHA := "sha"
+
+		testClient := &GithubClient{
+			Git:          gitMock,
+			Repositories: repoMock,
+		}
+		refs := []*github.Reference{
+			{
+				Ref: github.String("tags/testTag-1"),
+			},
+			{
+				Ref: github.String("tags/testTag-2"),
+			},
+			{
+				Ref: github.String("tags/testTag"),
+			},
+		}
+
+		gitMock.EXPECT().GetRefs(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(fmt.Sprintf("tags/%s", tag))).Return(refs, nil, nil)
+
+		githubObj := &github.GitObject{
+			SHA:  github.String(commitSHA),
+			Type: github.String("commit"),
+		}
+		githubTag := &github.Tag{
+			Tag:     github.String(tag),
+			Message: github.String(tag),
+			Object:  githubObj,
+		}
+		gitMock.EXPECT().CreateTag(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(githubTag)).Return(nil, nil, nil)
+		repoMock.EXPECT().GetCommit(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(commitSHA)).Return(nil, nil, nil)
+
+		refTag := &github.Reference{
+			Ref:    github.String(fmt.Sprintf("tags/%s", tag)),
+			Object: githubObj,
+		}
+		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
+
+		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrTagExists))
 	})
 }
 
