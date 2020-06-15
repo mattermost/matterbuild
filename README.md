@@ -17,22 +17,22 @@ Matterbuild is an internal Mattermost chatops tool for generating Mattermost rel
 
 Simply run the following:
 
-```
-$ make run
+```shell
+make run
 ```
 
 ### Testing
 
 Running all tests:
 
-```
-$ make test
+```shell
+make test
 ```
 
 Generate github mocks:
 
-```
-$ make mocks
+```shell
+make mocks
 ```
 
 ### Setting up slash command in Mattermost
@@ -48,19 +48,21 @@ $ make mocks
 
 Invoke matterbuild commands using curl:
 
-```
+```shell
 curl -X POST http://localhost:5001/slash_command -d "command=/matterbuild&token=&user_id=" -d "text=cutplugin+--tag+v0.4.1+--repo+mattermost-plugin-demo" 
 ```
 
 ### Testing cutplugin
 
 To test the cutplugin you have to:
+
 1. Connect to [Mattermost VPN](https://developers.mattermost.com/internal/infrastructure/vpn/)
 2. Get AWS [Vault](https://developers.mattermost.com/internal/infrastructure/vault/) credentials
 3. Signed public certificate by Vault
 4. Generate Github Token
 5. Set following fields in `config.json` before running matterbuild
-```
+
+```json
 // Used to authenticate invoking slash command
 "AllowedTokens": ["irkngs1z4jrcz8t9aiyzu8zx3r", ""],
 "AllowedUsers": ["gcye3z5pnpgibkcfhpemsp78ey", ""],
@@ -78,4 +80,3 @@ To test the cutplugin you have to:
 "PluginSigningAWSRegion": "us-east-1",
 "PluginSigningAWSS3PluginBucket": "mattermost-toolkit-dev"
 ```
-

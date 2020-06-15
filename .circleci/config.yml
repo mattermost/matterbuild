@@ -21,6 +21,46 @@ jobs:
       - checkout
       - run: make build
 
+  docker:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build docker image
+          command: |
+            export TAG_NAME=$(echo "${CIRCLE_SHA1}" | cut -c1-8)
+            DOCKER_TAG=${TAG_NAME} make docker
+
+  push-edge:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build and push docker image
+          command: |
+            echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
+            DOCKER_TAG=edge make docker push
+
+  push-latest:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Build and push docker image
+          command: |
+            echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
+            export TAG_NAME=$(echo "${CIRCLE_TAG}" | tr -d 'v')
+            DOCKER_TAG=${TAG_NAME} make docker push
+
+            docker tag mattermost/matterbuild:${TAG_NAME} mattermost/matterbuild:latest
+            DOCKER_TAG=latest make push
+
 workflows:
   version: 2
   untagged-build:
@@ -31,3 +71,21 @@ workflows:
           requires:
             - lint
             - test
+      - docker:
+          requires:
+            - lint
+            - test
+
+      - push-edge:
+          filters:
+            branches:
+              only: master
+
+  release-build:
+    jobs:
+      - push-latest:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/

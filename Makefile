@@ -1,5 +1,4 @@
 GO ?= $(shell command -v go 2> /dev/null)
-DEP ?= $(shell command -v dep 2> /dev/null)
 
 PACKAGES=$(shell go list ./...)
 
@@ -7,11 +6,15 @@ PACKAGES=$(shell go list ./...)
 .PHONY: all
 all: check-style test build
 
+## Cleans workspace
+.PHONY: clean
+clean:
+	rm -rf dist/
+
 ## Runs govet and gofmt against all packages.
 .PHONY: check-style
 check-style: gofmt govet
 	@echo Checking for style guide compliance
-
 
 ## Runs gofmt against all packages.
 .PHONY: gofmt
@@ -53,14 +56,25 @@ test:
 
 ## Builds matterbuild.
 .PHONY: build
-build:
+build: clean
 	@echo Building
-
-	rm -rf dist/
-	mkdir -p dist/matterbuild
-	$(GO) build
-	mv matterbuild dist/matterbuild/
+	$(GO) build -o dist/matterbuild/matterbuild
 	cp config.json dist/matterbuild/
+
+# Docker variables
+DEFAULT_TAG  ?= $(shell git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
+DOCKER_IMAGE ?= mattermost/matterbuild
+DOCKER_TAG   ?= $(shell echo "$(DEFAULT_TAG)" | tr -d 'v')
+
+## Build Docker image
+.PHONY: docker
+docker:
+	docker build --pull --tag $(DOCKER_IMAGE):$(DOCKER_TAG) --file Dockerfile .
+
+## Push Docker image
+.PHONY: push
+push:
+	docker push $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 ## Generate mocks.
 .PHONY: mocks
@@ -77,4 +91,4 @@ package: build
 
 # Help documentation à la https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help:
-	@cat Makefile | grep -v '\.PHONY' |  grep -v '\help:' | grep -B1 -E '^[a-zA-Z_.-]+:.*' | sed -e "s/:.*//" | sed -e "s/^## //" |  grep -v '\-\-' | sed '1!G;h;$$!d' | awk 'NR%2{printf "\033[36m%-30s\033[0m",$$0;next;}1' | sort
+	@cat Makefile | grep -v '\.PHONY' |  grep -v '\help:' | grep -B1 -E '^[a-zA-Z_.-]+:.*' | sed -e "s/:.*//" | sed -e "s/^## //" |  grep -v '\-\-' | uniq | sed '1!G;h;$$!d' | awk 'NR%2{printf "\033[36m%-30s\033[0m",$$0;next;}1' | sort
