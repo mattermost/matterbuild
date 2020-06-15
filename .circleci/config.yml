@@ -27,7 +27,35 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: make docker
+      - run: docker build --pull --tag mattermost/matterbuild:${CIRCLE_SHA1} --file Dockerfile .
+
+  push-edge:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Push docker image
+          command: |
+            echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+            DOCKER_TAG=edge make docker push
+
+  push-latest:
+    docker:
+      - image: circleci/buildpack-deps:stretch
+    steps:
+      - checkout
+      - setup_remote_docker
+      - run:
+          name: Push docker image
+          command: |
+            echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+            export TAG_NAME=$(echo "${CIRCLE_TAG}" | tr -d 'v')
+            DOCKER_TAG=${TAG_NAME} make docker push
+
+            docker tag mattermost/matterbuild:${TAG_NAME} mattermost/matterbuild:latest
+            DOCKER_TAG=latest make push
 
 workflows:
   version: 2
@@ -43,3 +71,17 @@ workflows:
           requires:
             - lint
             - test
+
+      - push-edge:
+          filters:
+            branches:
+              only: master
+
+  release-build:
+    jobs:
+      - push-latest:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/

@@ -71,14 +71,19 @@ build: clean
 	cp config.json dist/matterbuild/
 
 # Docker variables
-DEFAULT_TAG  ?= $(shell git rev-parse --short HEAD 2>/dev/null)
+DEFAULT_TAG  ?= $(shell git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
 DOCKER_IMAGE ?= mattermost/matterbuild
-DOCKER_TAG   ?= $(DEFAULT_TAG)
+DOCKER_TAG   ?= $(shell echo "$(DEFAULT_TAG)" | tr -d 'v')
 
 ## Build Docker image
 .PHONY: docker
 docker:
 	docker build --pull --tag $(DOCKER_IMAGE):$(DOCKER_TAG) --file Dockerfile .
+
+## Push Docker image
+.PHONY: push
+push:
+	docker push $(DOCKER_IMAGE):$(DOCKER_TAG)
 
 ## Generate mocks.
 .PHONY: mocks
