@@ -27,7 +27,11 @@ jobs:
     steps:
       - checkout
       - setup_remote_docker
-      - run: docker build --pull --tag mattermost/matterbuild:${CIRCLE_SHA1} --file Dockerfile .
+      - run:
+          name: Build docker image
+          command: |
+            export TAG_NAME=$(echo "${CIRCLE_SHA1}" | cut -c1-8)
+            DOCKER_TAG=${TAG_NAME} make docker
 
   push-edge:
     docker:
@@ -36,9 +40,9 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
-          name: Push docker image
+          name: Build and push docker image
           command: |
-            echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+            echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             DOCKER_TAG=edge make docker push
 
   push-latest:
@@ -48,9 +52,9 @@ jobs:
       - checkout
       - setup_remote_docker
       - run:
-          name: Push docker image
+          name: Build and push docker image
           command: |
-            echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
+            echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             export TAG_NAME=$(echo "${CIRCLE_TAG}" | tr -d 'v')
             DOCKER_TAG=${TAG_NAME} make docker push
 
