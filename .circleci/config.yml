@@ -22,6 +22,9 @@ jobs:
       - run: make build
 
   docker:
+    parameters:
+      target:
+        type: string
     docker:
       - image: circleci/buildpack-deps:stretch
     steps:
@@ -30,36 +33,24 @@ jobs:
       - run:
           name: Build docker image
           command: |
-            export TAG_NAME=$(echo "${CIRCLE_SHA1}" | cut -c1-8)
-            DOCKER_TAG=${TAG_NAME} make docker
-
-  push-edge:
-    docker:
-      - image: circleci/buildpack-deps:stretch
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build and push docker image
-          command: |
-            echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
-            DOCKER_TAG=edge make docker push
-
-  push-latest:
-    docker:
-      - image: circleci/buildpack-deps:stretch
-    steps:
-      - checkout
-      - setup_remote_docker
-      - run:
-          name: Build and push docker image
-          command: |
-            echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
-            export TAG_NAME=$(echo "${CIRCLE_TAG}" | tr -d 'v')
-            DOCKER_TAG=${TAG_NAME} make docker push
-
-            docker tag mattermost/matterbuild:${TAG_NAME} mattermost/matterbuild:latest
-            DOCKER_TAG=latest make push
+            if [ -z "<<parameters.target>>" ]; then
+              echo "'target' is missing"
+              exit 1
+            fi
+            if [ "<<parameters.target>>" == "pr" ]; then
+              export TAG_NAME=$(echo "${CIRCLE_SHA1}" | cut -c1-8)
+              DOCKER_TAG=${TAG_NAME} make docker
+            else
+              echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
+              if [ "<<parameters.target>>" == "edge" ]; then
+                DOCKER_TAG=edge make docker push
+              elif [ "<<parameters.target>>" == "latest" ]; then
+                export TAG_NAME=$(echo "${CIRCLE_TAG}" | tr -d 'v')
+                DOCKER_TAG=${TAG_NAME} make docker push
+                docker tag mattermost/matterbuild:${TAG_NAME} mattermost/matterbuild:latest
+                DOCKER_TAG=latest make push
+              fi
+            fi
 
 workflows:
   version: 2
@@ -72,18 +63,28 @@ workflows:
             - lint
             - test
       - docker:
+          name: docker-pr
+          target: pr
           requires:
-            - lint
-            - test
+            - build
+          filters:
+            branches:
+              ignore: master
 
-      - push-edge:
+      - docker:
+          name: docker-edge
+          target: edge
+          requires:
+            - build
           filters:
             branches:
               only: master
 
   release-build:
     jobs:
-      - push-latest:
+      - docker:
+          name: docker-latest
+          target: latest
           filters:
             tags:
               only: /^v.*/
