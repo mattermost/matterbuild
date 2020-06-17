@@ -21,6 +21,8 @@ COPY --from=builder /go/src/matterbuild/dist/matterbuild/matterbuild /usr/local/
 
 WORKDIR /app
 
+USER 1000
+
 VOLUME /app/ssl
 VOLUME /app/config
 

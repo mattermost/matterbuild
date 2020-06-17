@@ -5,9 +5,15 @@ metadata:
   name: matterbuild
 spec:
   replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
   selector:
     matchLabels:
       app: matterbuild
+  minReadySeconds: 5
   template:
     metadata:
       labels:
@@ -45,3 +51,6 @@ spec:
           items:
           - key: config.json
             path: config.json
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 1000
