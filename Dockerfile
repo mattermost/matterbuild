@@ -23,9 +23,8 @@ WORKDIR /app
 
 USER 1000
 
-VOLUME /app/ssl
 VOLUME /app/config
 
-EXPOSE 8080 8443
+EXPOSE 8080
 
 ENTRYPOINT ["matterbuild"]
