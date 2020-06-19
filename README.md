@@ -19,6 +19,7 @@ Optionals:
 
 1. [Tilt](https://tilt.dev/) (to deploy on a local dev K8s cluster)
 2. [kind](https://kind.sigs.k8s.io/) (to spin up a local dev K8s cluster)
+3. [kustomize](https://github.com/kubernetes-sigs/kustomize)
 
 ### Running
 
