@@ -67,8 +67,7 @@ test:
 .PHONY: build
 build: clean
 	@echo Building
-	$(GO) build -o dist/matterbuild/matterbuild
-	cp config.json dist/matterbuild/
+	$(GO) build -o dist/matterbuild
 
 # Docker variables
 DEFAULT_TAG  ?= $(shell git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
@@ -92,11 +91,6 @@ mocks:
 	mockgen -package mocks -destination server/mocks/mock_github_repo.go github.com/mattermost/matterbuild/server GithubRepositoriesService
 	mockgen -package mocks -destination server/mocks/mock_github_search.go github.com/mattermost/matterbuild/server GithubSearchService
 	mockgen -package mocks -destination server/mocks/mock_github_git.go github.com/mattermost/matterbuild/server GithubGitService
-
-## Packages matterbuild.
-.PHONY: package
-package: build
-	tar -C dist -czf dist/matterbuild.tar.gz matterbuild
 
 # Help documentation à la https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help:

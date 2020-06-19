@@ -17,7 +17,7 @@ FROM alpine:3.12.0
 
 RUN apk --no-cache add ca-certificates
 
-COPY --from=builder /go/src/matterbuild/dist/matterbuild/matterbuild /usr/local/bin/
+COPY --from=builder /go/src/matterbuild/dist/matterbuild /usr/local/bin/
 
 WORKDIR /app
 
