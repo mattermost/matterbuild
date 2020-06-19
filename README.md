@@ -29,6 +29,12 @@ This project uses `tilt` to deploy to local Kubernetes cluster. In order to do t
 kind create cluster --name matterbuild
 ```
 
+Matterbuild deployment to any cluster and any environment (dev, prod, etc) depends on existense of `deploy/config/confog.json` file, this file is `.gitignore`d and you cn safeley choose to copy sample config there for local development and testing:
+
+```shell
+cp config.json deploy/config/
+```
+
 Point `KUBECONFIG` to the newly created cluster, and start `tilt` and open [http://localhost:8080/](http://localhost:8080/):
 
 ```shell
