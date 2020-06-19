@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	l4g "github.com/alecthomas/log4go"
 )
@@ -27,9 +28,18 @@ func LogCritical(msg string, args ...interface{}) {
 	panic(fmt.Sprintf(msg, args...))
 }
 
+func findLogFile(fileName string) string {
+	if _, err := os.Stat("./logs/" + fileName); err == nil {
+		fileName, _ = filepath.Abs("./logs/" + fileName)
+	} else if _, err := os.Stat(fileName); err == nil {
+		fileName, _ = filepath.Abs("../" + fileName)
+	}
+	return fileName
+}
+
 func Log(level string, msg string, args ...interface{}) {
 	log.Printf("%v %v\n", level, fmt.Sprintf(msg, args...))
-	f, err := os.OpenFile("../matterbuild.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	f, err := os.OpenFile(findLogFile("matterbuild.log"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Printf("Failed to write to file")
 		return

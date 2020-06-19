@@ -21,10 +21,10 @@ COPY --from=builder /go/src/matterbuild/dist/matterbuild /usr/local/bin/
 
 WORKDIR /app
 
-USER 1000
-
 VOLUME /app/config
+RUN mkdir -p /app/logs && touch /app/logs/matterbuild.log && chown -R 1000:1000 /app/logs/matterbuild.log
 
+USER 1000
 EXPOSE 8080
 
 ENTRYPOINT ["matterbuild"]
