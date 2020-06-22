@@ -1,0 +1,56 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matterbuild
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: matterbuild
+  minReadySeconds: 5
+  template:
+    metadata:
+      labels:
+        app: matterbuild
+    spec:
+      restartPolicy: Always
+      containers:
+      - name: matterbuild
+        image: mattermost/matterbuild:edge
+        imagePullPolicy: IfNotPresent
+        command:
+          - "matterbuild"
+        ports:
+        - name: mb-api
+          containerPort: 8080
+        resources:
+          limits:
+            cpu: "1"
+            memory: 400Mi
+          requests:
+            cpu: 200m
+            memory: 100Mi
+        volumeMounts:
+        - name: config
+          mountPath: /app/config/
+          readOnly: true
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: mb-api
+      volumes:
+      - name: config
+        configMap:
+          name: config
+          items:
+          - key: config.json
+            path: config.json
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 1000

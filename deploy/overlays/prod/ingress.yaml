@@ -1,0 +1,16 @@
+---
+apiVersion: networking.k8s.io/v1beta1
+kind: Ingress
+metadata:
+  name: matterbuild
+  labels:
+    app: matterbuild
+spec:
+  rules:
+  - host: matterbuild.mattermost.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: matterbuild
+          servicePort: mb-api

@@ -37,3 +37,8 @@ Session.vim
 
 .agignore
 /matterbuild.log
+
+# Deployment
+deploy/*/config.json
+env.sh
+out/
