@@ -29,10 +29,10 @@ func LogCritical(msg string, args ...interface{}) {
 }
 
 func findLogFile(fileName string) string {
-	if _, err := os.Stat("./logs/" + fileName); err == nil {
+	if _, err := os.Stat("./logs/"); err == nil {
 		fileName, _ = filepath.Abs("./logs/" + fileName)
 	} else if _, err := os.Stat(fileName); err == nil {
-		fileName, _ = filepath.Abs("../" + fileName)
+		fileName, _ = filepath.Abs("./" + fileName)
 	}
 	return fileName
 }
