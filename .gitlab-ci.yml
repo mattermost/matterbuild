@@ -1,4 +1,3 @@
 include:
   - project: 'ci/matterbuild'
-    ref: init
     file: '/all.yml'
