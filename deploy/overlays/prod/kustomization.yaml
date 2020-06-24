@@ -11,9 +11,6 @@ bases:
 resources:
 - ingress.yaml
 
-patchesStrategicMerge:
-- service.yaml
-
 images:
 - name: mattermost/matterbuild
   newName: mattermost/matterbuild

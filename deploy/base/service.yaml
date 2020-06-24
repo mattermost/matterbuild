@@ -4,7 +4,7 @@ kind: Service
 metadata:
   name: matterbuild
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: matterbuild
   ports:
