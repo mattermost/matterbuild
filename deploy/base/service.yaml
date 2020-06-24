@@ -8,6 +8,6 @@ spec:
   selector:
     app: matterbuild
   ports:
-  - name: mb-api
+  - name: http
     port: 8080
-    targetPort: mb-api
+    targetPort: http

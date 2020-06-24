@@ -20,4 +20,4 @@ spec:
       - path: /
         backend:
           serviceName: matterbuild
-          servicePort: mb-api
+          servicePort: 8080

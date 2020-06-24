@@ -27,7 +27,7 @@ spec:
         command:
           - "matterbuild"
         ports:
-        - name: mb-api
+        - name: http
           containerPort: 8080
         resources:
           limits:
@@ -43,7 +43,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /healthz
-            port: mb-api
+            port: http
       volumes:
       - name: config
         configMap:
