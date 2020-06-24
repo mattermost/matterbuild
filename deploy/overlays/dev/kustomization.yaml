@@ -5,3 +5,6 @@ kind: Kustomization
 bases:
 - ../../base
 - ../../config
+
+patchesStrategicMerge:
+- service.yaml

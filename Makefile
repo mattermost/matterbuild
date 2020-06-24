@@ -9,7 +9,7 @@ all: check-style test build
 ## Cleans workspace
 .PHONY: clean
 clean:
-	rm -rf dist/
+	rm -rf dist/ out/
 
 ## Runs govet and gofmt against all packages.
 .PHONY: check-style
