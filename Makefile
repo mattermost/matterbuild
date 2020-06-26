@@ -97,7 +97,7 @@ mocks:
 #####################
 PATTERN =
 
-# if the last relase was alpha, beta or rc, 'release' target has to used with current
+# if the last release was alpha, beta or rc, 'release' target has to used with current
 # cycle release. For example if latest tag is v0.8.0-rc.2 and v0.8.0 GA needs to get
 # released the following should be executed: "make release version=0.8.0"
 ## Prepare release
