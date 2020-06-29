@@ -105,3 +105,11 @@ To test the cutplugin you have to:
 "PluginSigningAWSRegion": "us-east-1",
 "PluginSigningAWSS3PluginBucket": "mattermost-toolkit-dev"
 ```
+
+## Releasing
+
+There are helper Makefile targets to cut a release following semver:
+
+- `make patch`: to cut a patch release
+- `make minor`: to cut a minor release
+- `make major`: to cut a major release

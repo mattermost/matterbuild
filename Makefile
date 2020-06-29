@@ -92,6 +92,35 @@ mocks:
 	mockgen -package mocks -destination server/mocks/mock_github_search.go github.com/mattermost/matterbuild/server GithubSearchService
 	mockgen -package mocks -destination server/mocks/mock_github_git.go github.com/mattermost/matterbuild/server GithubGitService
 
+#####################
+## Release targets ##
+#####################
+PATTERN =
+
+# if the last release was alpha, beta or rc, 'release' target has to be used with current
+# cycle release. For example if latest tag is v0.8.0-rc.2 and v0.8.0 GA needs to get
+# released the following should be executed: "make release VERSION=0.8.0"
+## Prepare release
+.PHONY: release
+release: VERSION ?= $(shell git describe --tags 2>/dev/null | sed 's/^v//' | awk -F'[ .]' '{print $(PATTERN)}')
+release:
+	@ ./scripts/release.sh "$(VERSION)" "1"
+
+## Prepare Patch release
+.PHONY: patch
+patch: PATTERN = '\$$1\".\"\$$2\".\"\$$3+1'
+patch: release
+
+## Prepare Minor release
+.PHONY: minor
+minor: PATTERN = '\$$1\".\"\$$2+1\".0\"'
+minor: release
+
+## Prepare Major release
+.PHONY: major
+major: PATTERN = '\$$1+1\".0.0\"'
+major: release
+
 # Help documentation à la https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help:
 	@cat Makefile | grep -v '\.PHONY' |  grep -v '\help:' | grep -B1 -E '^[a-zA-Z_.-]+:.*' | sed -e "s/:.*//" | sed -e "s/^## //" |  grep -v '\-\-' | uniq | sed '1!G;h;$$!d' | awk 'NR%2{printf "\033[36m%-30s\033[0m",$$0;next;}1' | sort

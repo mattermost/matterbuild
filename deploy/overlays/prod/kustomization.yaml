@@ -14,4 +14,4 @@ resources:
 images:
 - name: mattermost/matterbuild
   newName: mattermost/matterbuild
-  digest: sha256:ea6b92423a5d8464255f42cfd28157d888d501f74f2c3ae28922817404f6109f
+  newTag: 0.1.0
