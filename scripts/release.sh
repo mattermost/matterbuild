@@ -4,6 +4,7 @@ set -o errexit
 set -o pipefail
 
 CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
 if [ -z "${CURRENT_BRANCH}" -o "${CURRENT_BRANCH}" != "master" ]; then
     echo "Error: The current branch is '${CURRENT_BRANCH}', switch to 'master' to do the release."
     exit 1
@@ -14,24 +15,22 @@ if [ -n "$(git status --short)" ]; then
     exit 1
 fi
 
-CURRENT_VERSION=""
+CURRENT_VERSION=$(git describe --tags --exact-match 2>/dev/null || git describe --tags 2>/dev/null)
+
+if [ -z "${CURRENT_VERSION}" ]; then
+    echo "Error: current version not found."
+    exit 1
+fi
+
 RELEASE_VERSION=$1
 FROM_MAKEFILE=$2
 
 if [ -z "${RELEASE_VERSION}" ]; then
     if [ -z "${FROM_MAKEFILE}" ]; then
-        echo "Error: VERSION is missing. e.g. ./release.sh <version>"
+        echo "Error: VERSION is missing. e.g. ./release.sh <VERSION>"
     else
-        echo "Error: missing value for 'version'. e.g. 'make release version=x.y.z'"
+        echo "Error: missing value for 'version'. e.g. 'make release VERSION=x.y.z'"
     fi
-    exit 1
-fi
-
-if [ -z "${CURRENT_VERSION}" ]; then
-    CURRENT_VERSION=$(git describe --tags --exact-match 2>/dev/null || git describe --tags 2>/dev/null)
-fi
-if [ -z "${CURRENT_VERSION}" ]; then
-    echo "Error: current version not found."
     exit 1
 fi
 
