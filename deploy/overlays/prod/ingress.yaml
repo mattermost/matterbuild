@@ -8,6 +8,7 @@ metadata:
   annotations:
     kubernetes.io/ingress.class: ambassador
     cert-manager.io/cluster-issuer: letsencrypt-prod
+    getambassador.io/ambassador-id: public
 spec:
   tls:
   - hosts:
