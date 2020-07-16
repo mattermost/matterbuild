@@ -9,13 +9,16 @@ COPY go.sum .
 RUN go mod download
 
 COPY . .
-RUN make build
+RUN CGO_ENABLED=0 make build
 
 ################
 
-FROM alpine:3.12.0
+FROM debian:buster-slim
 
-RUN apk --no-cache add ca-certificates
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y ca-certificates && \
+    apt-get clean all && \
+    rm -rf /var/cache/apt/
 
 COPY --from=builder /go/src/matterbuild/dist/matterbuild /usr/local/bin/
 
