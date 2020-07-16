@@ -10,6 +10,14 @@ bases:
 resources:
 - ingress.yaml
 
+patchesStrategicMerge:
+- patches/deployment-ca-cert.yaml
+
+secretGenerator:
+- name: cert-keys
+  files:
+  - ca.crt
+
 images:
 - name: mattermost/matterbuild
   newName: mattermost/matterbuild

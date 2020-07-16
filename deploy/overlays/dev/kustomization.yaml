@@ -7,4 +7,4 @@ bases:
 - ../../config
 
 patchesStrategicMerge:
-- service.yaml
+- patches/service-nodeport.yaml

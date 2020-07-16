@@ -42,3 +42,6 @@ Session.vim
 deploy/*/config.json
 env.sh
 out/
+
+*.crt
+*.pem

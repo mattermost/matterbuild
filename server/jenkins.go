@@ -4,6 +4,7 @@
 package server
 
 import (
+	"io/ioutil"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +20,16 @@ type JenkinsStatus struct {
 }
 
 func getJenkins(jenkinsUser, jenkinsToken, jenkinsURL string) (*gojenkins.Jenkins, *AppError) {
-	jenkins, err := gojenkins.CreateJenkins(jenkinsURL, jenkinsUser, jenkinsToken).Init()
+	jenkins := gojenkins.CreateJenkins(jenkinsURL, jenkinsUser, jenkinsToken)
+	jenkins.Requester.SslVerify = config.SSLVerify
+	if config.CACrtPath {
+		caCert, err := ioutil.ReadFile("/app/ssl/ca.crt")
+		if err != nil {
+			return nil, NewError("Unable to find CA certificate for jenkins!", err)
+		}
+		jenkins.Requester.CACert = caCert
+	}
+	_, err := jenkins.Init()
 	if err != nil {
 		return nil, NewError("Unable to connect to jenkins!", err)
 	}

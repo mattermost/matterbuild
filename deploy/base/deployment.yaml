@@ -26,6 +26,19 @@ spec:
         imagePullPolicy: IfNotPresent
         command:
           - "matterbuild"
+          - "-ssl-verify=$(SSL_VERIFY)"
+          - "-ca-cert=$(CA_CERT)"
+        env:
+        - name: SSL_VERIFY
+          valueFrom:
+            configMapKeyRef:
+              name: matterbuild
+              key: SSL_VERIFY
+        - name: CA_CERT
+          valueFrom:
+            configMapKeyRef:
+              name: matterbuild
+              key: CA_CERT
         ports:
         - name: http
           containerPort: 8080
