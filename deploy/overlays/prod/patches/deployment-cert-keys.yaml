@@ -21,3 +21,4 @@ spec:
       - name: cert-keys
         secret:
           secretName: cert-keys
+          defaultMode: 0400
