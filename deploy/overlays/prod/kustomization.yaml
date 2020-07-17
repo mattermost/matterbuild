@@ -11,12 +11,13 @@ resources:
 - ingress.yaml
 
 patchesStrategicMerge:
-- patches/deployment-ca-cert.yaml
+- patches/deployment-cert-keys.yaml
 
 secretGenerator:
 - name: cert-keys
   files:
   - ca.crt
+  - id_rsa
 
 images:
 - name: mattermost/matterbuild
