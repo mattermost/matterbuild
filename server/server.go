@@ -6,6 +6,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -124,9 +125,20 @@ func ParseSlashCommand(r *http.Request) (*MMSlashCommand, error) {
 	return inCommand, nil
 }
 
+type Config struct {
+	SSLVerify bool
+	CACrtPath bool
+}
+
+var config = &Config{}
+
 func Start() {
 	LoadConfig("config.json")
 	LogInfo("Starting Matterbuild")
+
+	flag.BoolVar(&config.SSLVerify, "ssl-verify", true, "Verify Jenkins SSL")
+	flag.BoolVar(&config.CACrtPath, "ca-cert", true, "Use Jenkins CA certificate")
+	flag.Parse()
 
 	router := httprouter.New()
 	router.GET("/", indexHandler)

@@ -24,7 +24,6 @@ COPY --from=builder /go/src/matterbuild/dist/matterbuild /usr/local/bin/
 
 WORKDIR /app
 
-VOLUME /app/config
 RUN mkdir -p /app/logs && chown -R 1000:1000 /app/logs/
 
 USER 1000

@@ -9,3 +9,9 @@ resources:
 
 commonLabels:
   app: matterbuild
+
+configMapGenerator:
+- name: matterbuild
+  literals:
+    - SSL_VERIFY="false"
+    - CA_CERT="false"

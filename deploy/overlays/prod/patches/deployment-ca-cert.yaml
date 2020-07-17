@@ -1,0 +1,18 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: matterbuild
+spec:
+  template:
+    spec:
+      containers:
+      - name: matterbuild
+        volumeMounts:
+        - name: cert-keys
+          mountPath: /app/ssl/ca.crt
+          readOnly: true
+      volumes:
+      - name: cert-keys
+        secret:
+          secretName: cert-keys
