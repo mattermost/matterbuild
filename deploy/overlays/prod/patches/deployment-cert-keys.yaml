@@ -12,6 +12,9 @@ spec:
         - name: cert-keys
           mountPath: /app/ssl/ca.crt
           readOnly: true
+        - name: cert-keys
+          mountPath: /app/ssh/id_rsa
+          readOnly: true
       volumes:
       - name: cert-keys
         secret:
