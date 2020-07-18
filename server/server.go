@@ -455,13 +455,14 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
-	msg := fmt.Sprintf("Tag %s created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", tag)
+	username := slashCommand.Username
+	msg := fmt.Sprintf("@%s\nTag %s created by. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
 	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
 		if !force {
-			WriteErrorResponse(w, NewError(fmt.Errorf("Tag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", tag).Error(), nil))
+			WriteErrorResponse(w, NewError(fmt.Errorf("@%s\nTag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", username, tag).Error(), nil))
 			return nil
 		}
-		msg = fmt.Sprintf("Tag %s exists. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", tag)
+		msg = fmt.Sprintf("@%s\nTag %s exists. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
 	} else if err != nil {
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
@@ -490,17 +491,24 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 
 		branch := fmt.Sprintf("add_%s_%s", repo, tag)
 		marketplaceCommand := fmt.Sprintf(`
-git checkout production
-git pull
-git checkout -b %[3]s
-make plugins.json
-make generate
-git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Marketplace"
-git push --set-upstream origin %[3]s
-git checkout master
-`, tag, repo, branch)
-		url := fmt.Sprintf("https://github.com/mattermost/mattermost-marketplace/compare/production...%s?quick_pull=1&labels=3:+QA+Review,2:+Dev+Review", branch)
-		msg = fmt.Sprintf("Plugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.", tag, repo, releaseURL, marketplaceCommand, url)
+			git checkout production
+			git pull
+			git checkout -b %[3]s
+			make plugins.json
+			make generate
+			git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Marketplace"
+			git push --set-upstream origin %[3]s
+			git checkout master
+			`, tag, repo, branch,
+		)
+		url := fmt.Sprintf(
+			"https://github.com/mattermost/mattermost-marketplace/compare/production...%s?quick_pull=1&labels=3:+QA+Review,2:+Dev+Review",
+			branch,
+		)
+		msg = fmt.Sprintf(
+			"@%s\nPlugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.",
+			username, tag, repo, releaseURL, marketplaceCommand, url,
+		)
 		color := "#0060aa"
 		if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Pluging Release Process", msg, color, IN_CHANNEL)); err != nil {
 			LogError("failed to post success msg through PostExtraMessages err=%s", err.Error())
