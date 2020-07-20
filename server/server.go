@@ -454,21 +454,21 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
 	}
-
-	cmdFlags := fmt.Sprintf("tag %s, repo %s, commitSHA %s, force %v", tag, repo, commitSHA, force)
-	msg := fmt.Sprintf("Tag created, flags %s. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", cmdFlags)
+	
+	cmdFlags := fmt.Sprintf("Flags: tag `%s`, repo `%s`, commitSHA `%s`, force `%v`.", tag, repo, commitSHA, force)
+	msg := fmt.Sprintf("%s\nTag created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", cmdFlags)
 	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
 		if !force {
-			WriteErrorResponse(w, NewError(fmt.Errorf("Tag already exists, details %s. Not generating any artifacts. Use --force to regenerate artifacts. ", cmdFlags).Error(), nil))
+			WriteErrorResponse(w, NewError(fmt.Errorf("%s\nTag already exists. Not generating any artifacts. Use --force to regenerate artifacts. ", cmdFlags).Error(), nil))
 			return nil
 		}
-		msg = fmt.Sprintf("Tag exists, flags %s. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", cmdFlags)
+		msg = fmt.Sprintf("%s\nTag exists. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", cmdFlags)
 	} else if err != nil {
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
 	}
 
-	WriteEnrichedResponse(w, fmt.Sprintf("Plugin Release Process, flags %s", cmdFlags), msg, "#0060aa", IN_CHANNEL)
+	WriteEnrichedResponse(w, fmt.Sprintf("%s\nPlugin Release Process, flags %s", cmdFlags), msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
 		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
