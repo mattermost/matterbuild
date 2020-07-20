@@ -456,7 +456,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	}
 
 	username := slashCommand.Username
-	msg := fmt.Sprintf("Username: `@%s`\nTag %s created by. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
+	msg := fmt.Sprintf("`@%s` triggered a plugin release process.\nTag %s created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
 	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
 		if !force {
 			WriteErrorResponse(w, NewError(fmt.Errorf("Username: `@%s`\nTag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", username, tag).Error(), nil))
