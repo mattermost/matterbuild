@@ -491,7 +491,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 
 		branch := fmt.Sprintf("add_%s_%s", repo, tag)
 
-		// the string below has been left non-indented to avoid introducing unintentional spaces
+		// Purposefully left unindented to avoid introducing extra spaces when posting the message.
 		marketplaceCommand := fmt.Sprintf(`
 git checkout production
 git pull
