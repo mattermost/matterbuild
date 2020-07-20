@@ -490,17 +490,19 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		}
 
 		branch := fmt.Sprintf("add_%s_%s", repo, tag)
+
+		// this has been left non-indented to avoid introducing unintended spaces visible to the user
 		marketplaceCommand := fmt.Sprintf(`
-			git checkout production
-			git pull
-			git checkout -b %[3]s
-			make plugins.json
-			make generate
-			git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Marketplace"
-			git push --set-upstream origin %[3]s
-			git checkout master
-			`, tag, repo, branch,
-		)
+git checkout production
+git pull
+git checkout -b %[3]s
+make plugins.json
+make generate
+git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Marketplace"
+git push --set-upstream origin %[3]s
+git checkout master
+`, tag, repo, branch)
+
 		url := fmt.Sprintf(
 			"https://github.com/mattermost/mattermost-marketplace/compare/production...%s?quick_pull=1&labels=3:+QA+Review,2:+Dev+Review",
 			branch,
