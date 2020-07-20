@@ -468,7 +468,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
-	WriteEnrichedResponse(w, fmt.Sprintf("%s\nPlugin Release Process, flags %s", cmdFlags), msg, "#0060aa", IN_CHANNEL)
+	WriteEnrichedResponse(w, fmt.Sprintf("%s\nPlugin Release Process", cmdFlags), msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
 		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
