@@ -456,13 +456,13 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	}
 
 	username := slashCommand.Username
-	msg := fmt.Sprintf("@%s\nTag %s created by. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
+	msg := fmt.Sprintf("Username: `@%s`\nTag %s created by. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
 	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
 		if !force {
-			WriteErrorResponse(w, NewError(fmt.Errorf("@%s\nTag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", username, tag).Error(), nil))
+			WriteErrorResponse(w, NewError(fmt.Errorf("Username: `@%s`\nTag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", username, tag).Error(), nil))
 			return nil
 		}
-		msg = fmt.Sprintf("@%s\nTag %s exists. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
+		msg = fmt.Sprintf("Username: `@%s`\nTag %s exists. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
 	} else if err != nil {
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
@@ -491,7 +491,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 
 		branch := fmt.Sprintf("add_%s_%s", repo, tag)
 
-		// this has been left non-indented to avoid introducing unintended spaces visible to the user
+		// the string below has been left non-indented to avoid introducing unintentional spaces
 		marketplaceCommand := fmt.Sprintf(`
 git checkout production
 git pull
@@ -508,7 +508,7 @@ git checkout master
 			branch,
 		)
 		msg = fmt.Sprintf(
-			"@%s\nPlugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.",
+			"Username: `@%s`\nPlugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.",
 			username, tag, repo, releaseURL, marketplaceCommand, url,
 		)
 		color := "#0060aa"
