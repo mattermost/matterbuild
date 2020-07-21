@@ -39,7 +39,7 @@ Session.vim
 /matterbuild.log
 
 # Deployment
-deploy/*/config.json
+deploy/**/config.json
 env.sh
 out/
 

@@ -11,14 +11,14 @@ metadata:
     getambassador.io/ambassador-id: public
 spec:
   tls:
-  - hosts:
-    - matterbuild.mattermost.com
-    secretName: matterbuild-tls
+    - hosts:
+        - matterbuild.mattermost.com
+      secretName: matterbuild-tls
   rules:
-  - host: matterbuild.mattermost.com
-    http:
-      paths:
-      - path: /
-        backend:
-          serviceName: matterbuild
-          servicePort: 8080
+    - host: matterbuild.mattermost.com
+      http:
+        paths:
+          - path: /
+            backend:
+              serviceName: matterbuild
+              servicePort: 8080
