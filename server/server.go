@@ -459,10 +459,10 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	msg := fmt.Sprintf("`@%s` triggered a plugin release process.\nTag %s created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
 	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
 		if !force {
-			WriteErrorResponse(w, NewError(fmt.Errorf("Username: `@%s`\nTag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", username, tag).Error(), nil))
+			WriteErrorResponse(w, NewError(fmt.Errorf("`@%s` Tag %s already exists, not generating any artifacts. Use --force to regenerate artifacts.", username, tag).Error(), nil))
 			return nil
 		}
-		msg = fmt.Sprintf("Username: `@%s`\nTag %s exists. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
+		msg = fmt.Sprintf("@%s Tag %s already exists. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", username, tag)
 	} else if err != nil {
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
@@ -508,7 +508,7 @@ git checkout master
 			branch,
 		)
 		msg = fmt.Sprintf(
-			"Username: `@%s`\nPlugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.",
+			"@%s A Plugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.",
 			username, tag, repo, releaseURL, marketplaceCommand, url,
 		)
 		color := "#0060aa"
