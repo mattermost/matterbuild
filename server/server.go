@@ -454,7 +454,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		WriteErrorResponse(w, NewError(err.Error(), nil))
 		return nil
 	}
-	
+
 	cmdFlags := fmt.Sprintf("Flags: tag `%s`, repo `%s`, commitSHA `%s`, force `%v`.", tag, repo, commitSHA, force)
 	msg := fmt.Sprintf("%s\nTag created. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", cmdFlags)
 	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
@@ -468,7 +468,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
-	WriteEnrichedResponse(w, fmt.Sprintf("%s\nPlugin Release Process", cmdFlags), msg, "#0060aa", IN_CHANNEL)
+	WriteEnrichedResponse(w, "Plugin Release Process", msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
 		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
