@@ -16,10 +16,12 @@ func TestCheckSlashPermissions(t *testing.T) {
 			AllowedUsers:  []string{"userid1", "userid2"},
 			ReleaseUsers:  []string{"userid1", "userid3"},
 		}
+
 		commands := []*MMSlashCommand{
-			&MMSlashCommand{Command: "/matterbuild", Token: "token", UserId: "userid1", Text: "cut 0.0.0-rc0"},
-			&MMSlashCommand{Command: "/matterbuild", Token: "token", UserId: "userid1", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
+			{Command: "/matterbuild", Token: "token", UserId: "userid1", Text: "cut 0.0.0-rc0"},
+			{Command: "/matterbuild", Token: "token", UserId: "userid1", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
 		}
+
 		rootCmd := initCommands(nil, nil)
 		for _, command := range commands {
 			require.Nil(t, checkSlashPermissions(command, rootCmd))
@@ -33,12 +35,12 @@ func TestCheckSlashPermissions(t *testing.T) {
 			ReleaseUsers:  []string{"userid1", "userid3"},
 		}
 		commands := []*MMSlashCommand{
-			&MMSlashCommand{Command: "/matterbuild", Token: "token", UserId: "userid2", Text: "cut 0.0.0-rc0"},
-			&MMSlashCommand{Command: "/matterbuild", Token: "token", UserId: "userid3", Text: "cut 0.0.0-rc0"},
-			&MMSlashCommand{Command: "/matterbuild", Token: "token", UserId: "userid4", Text: "cut 0.0.0-rc0"},
-			&MMSlashCommand{Command: "/matterbuild", Token: "token", UserId: "userid2", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
-			&MMSlashCommand{Command: "/matterbuild", Token: "token", UserId: "userid3", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
-			&MMSlashCommand{Command: "/matterbuild", Token: "token", UserId: "userid4", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
+			{Command: "/matterbuild", Token: "token", UserId: "userid2", Text: "cut 0.0.0-rc0"},
+			{Command: "/matterbuild", Token: "token", UserId: "userid3", Text: "cut 0.0.0-rc0"},
+			{Command: "/matterbuild", Token: "token", UserId: "userid4", Text: "cut 0.0.0-rc0"},
+			{Command: "/matterbuild", Token: "token", UserId: "userid2", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
+			{Command: "/matterbuild", Token: "token", UserId: "userid3", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
+			{Command: "/matterbuild", Token: "token", UserId: "userid4", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
 		}
 		rootCmd := initCommands(nil, nil)
 		for _, command := range commands {
