@@ -517,7 +517,7 @@ git checkout master
 				slashCommand.Username, tag, repo, releaseURL, marketplaceCommand, url,
 			)
 		}
-		
+
 		color := "#0060aa"
 		if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Plugin Release Process", msg, color, IN_CHANNEL)); err != nil {
 			LogError("failed to post success msg through PostExtraMessages err=%s", err.Error())
