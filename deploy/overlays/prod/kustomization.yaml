@@ -4,22 +4,22 @@ kind: Kustomization
 namespace: matterbuild
 
 bases:
-- ../../base
-- ../../config
+  - ../../base/app
+  - ../../base/config
 
 resources:
-- ingress.yaml
+  - ingress.yaml
 
 patchesStrategicMerge:
-- patches/deployment-cert-keys.yaml
+  - patches/deployment-cert-keys.yaml
 
 secretGenerator:
-- name: cert-keys
-  files:
-  - ca.crt
-  - id_rsa
+  - name: cert-keys
+    files:
+      - ca.crt
+      - id_rsa
 
 images:
-- name: mattermost/matterbuild
-  newName: mattermost/matterbuild
-  newTag: 0.3.1
+  - name: mattermost/matterbuild
+    newName: mattermost/matterbuild
+    newTag: 0.3.1

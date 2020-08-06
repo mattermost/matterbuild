@@ -7,18 +7,18 @@ spec:
   template:
     spec:
       containers:
-      - name: matterbuild
-        volumeMounts:
-        - name: cert-keys
-          mountPath: /app/ssl/ca.crt
-          subPath: ca.crt
-          readOnly: true
-        - name: cert-keys
-          mountPath: /app/ssh/id_rsa
-          subPath: id_rsa
-          readOnly: true
+        - name: matterbuild
+          volumeMounts:
+            - name: cert-keys
+              mountPath: /app/ssl/ca.crt
+              subPath: ca.crt
+              readOnly: true
+            - name: cert-keys
+              mountPath: /app/ssh/id_rsa
+              subPath: id_rsa
+              readOnly: true
       volumes:
-      - name: cert-keys
-        secret:
-          secretName: cert-keys
-          defaultMode: 0400
+        - name: cert-keys
+          secret:
+            secretName: cert-keys
+            defaultMode: 0400
