@@ -455,7 +455,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
-	command := slashCommand.Command + "" + slashCommand.Text
+	command := slashCommand.Command + " " + slashCommand.Text
 	msg := fmt.Sprintf("@%s triggered a plugin release process using `%s`.\nTag %s created in  `%s`. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", slashCommand.Username, command, tag, repo)
 	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
 		if !force {
