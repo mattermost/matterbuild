@@ -64,15 +64,16 @@ workflows:
             - test
       - docker:
           name: docker-pr
+          context: matterbuild-docker
           target: pr
           requires:
             - build
           filters:
             branches:
               ignore: master
-
       - docker:
           name: docker-edge
+          context: matterbuild-docker
           target: edge
           requires:
             - build
@@ -84,6 +85,7 @@ workflows:
     jobs:
       - docker:
           name: docker-latest
+          context: matterbuild-docker
           target: latest
           filters:
             tags:
