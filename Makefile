@@ -1,3 +1,20 @@
+# Project variables
+NAME        := matterbuild
+AUTHOR      := mattermost
+URL         := https://github.com/$(AUTHOR)/$(NAME)
+
+# Build variables
+COMMIT_HASH  ?= $(shell git rev-parse --short HEAD 2>/dev/null)
+BUILD_DATE   ?= $(shell date +%FT%T%z)
+CUR_VERSION  ?= $(shell git describe --tags --exact-match 2>/dev/null || git describe --tags 2>/dev/null || echo "v0.0.0-$(COMMIT_HASH)")
+
+# Go variables
+LDFLAGS :="
+LDFLAGS += -X github.com/$(AUTHOR)/$(NAME)/version.version=$(CUR_VERSION)
+LDFLAGS += -X github.com/$(AUTHOR)/$(NAME)/version.commitHash=$(COMMIT_HASH)
+LDFLAGS += -X github.com/$(AUTHOR)/$(NAME)/version.buildDate=$(BUILD_DATE)
+LDFLAGS +="
+
 GO ?= $(shell command -v go 2> /dev/null)
 
 PACKAGES=$(shell go list ./...)
@@ -67,7 +84,7 @@ test:
 .PHONY: build
 build: clean
 	@echo Building
-	$(GO) build -o dist/matterbuild
+	$(GO) build -ldflags $(LDFLAGS) -o dist/matterbuild
 
 # Docker variables
 DEFAULT_TAG  ?= $(shell git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)

@@ -6,6 +6,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -22,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/mattermost/matterbuild/utils"
+	"github.com/mattermost/matterbuild/version"
 )
 
 const (
@@ -130,6 +132,10 @@ type Config struct {
 	CACrtPath bool
 }
 
+type healthResponse struct {
+	Info *version.Info `json:"info"`
+}
+
 var config = &Config{}
 
 func Start() {
@@ -155,7 +161,12 @@ func indexHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	w.Write([]byte("This is the matterbuild server."))
 }
 func healthHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	w.Write([]byte("Healthy!"))
+	err := json.NewEncoder(w).Encode(healthResponse{Info: version.Full()})
+	if err != nil {
+		LogError(err.Error())
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func checkSlashPermissions(command *MMSlashCommand, rootCmd *cobra.Command) *AppError {
