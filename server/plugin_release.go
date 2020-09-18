@@ -774,3 +774,54 @@ func getSSHClientConfig(username, path, certPath, hostPublicKey string) (*ssh.Cl
 		Timeout:         30 * time.Second,
 	}, nil
 }
+
+// getSuccessMessage return the plugin release success message to get posted into a channel.
+// releaseURL and commitSHA may be empty.
+func getSuccessMessage(tag, repo, commitSHA, releaseURL, username string) string {
+	branch := fmt.Sprintf("add_%s_%s", repo, tag)
+
+	const codeSeperator = "```"
+
+	marketplaceCommand := "\n" + codeSeperator +
+		fmt.Sprintf(`
+git checkout production
+git pull
+git checkout -b %[3]s
+go run ./cmd/generator/ add %[2]s %[1]s [--official|--community]
+`, tag, repo, branch) +
+		codeSeperator + "\n" +
+		"Use `--official` for plugins maintained by Matttermost and `--community` for ones mainted by the Open Source community.\n" +
+		"You might want to use other flag like `--beta` to add a `Beta` label.\n" +
+		"\n" +
+		"Then review your changes by running `git diff plugins.json`\n" +
+		codeSeperator +
+		fmt.Sprintf(`
+make generate
+git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Marketplace"
+git push --set-upstream origin %[3]s
+git checkout master
+`, tag, repo, branch) +
+		codeSeperator + "\n"
+
+	url := fmt.Sprintf(
+		"https://github.com/mattermost/mattermost-marketplace/compare/production...%s?quick_pull=1&labels=3:+QA+Review,2:+Dev+Review",
+		branch,
+	)
+
+	msg := fmt.Sprintf("@%s A Plugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n", username, tag, repo)
+
+	if commitSHA != "" {
+		msg += fmt.Sprintf("CommitSHA: **%s**\n", commitSHA)
+	}
+
+	if releaseURL != "" {
+		msg += fmt.Sprintf("[Release Link](%s)\n", releaseURL)
+	}
+
+	msg += fmt.Sprintf(
+		"To add this release to the Plugin Marketplace run inside your local Marketplace repository:%sUse %s to open a Pull Request.",
+		marketplaceCommand, url,
+	)
+
+	return msg
+}

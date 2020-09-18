@@ -489,35 +489,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 			releaseURL = release.GetHTMLURL()
 		}
 
-		branch := fmt.Sprintf("add_%s_%s", repo, tag)
-
-		// Purposefully left unindented to avoid introducing extra spaces when posting the message.
-		marketplaceCommand := fmt.Sprintf(`
-git checkout production
-git pull
-git checkout -b %[3]s
-make plugins.json
-make generate
-git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Marketplace"
-git push --set-upstream origin %[3]s
-git checkout master
-`, tag, repo, branch)
-
-		url := fmt.Sprintf(
-			"https://github.com/mattermost/mattermost-marketplace/compare/production...%s?quick_pull=1&labels=3:+QA+Review,2:+Dev+Review",
-			branch,
-		)
-		if commitSHA != "" {
-			msg = fmt.Sprintf(
-				"@%s A Plugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\nCommitSHA: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.",
-				slashCommand.Username, tag, repo, commitSHA, releaseURL, marketplaceCommand, url,
-			)
-		} else {
-			msg = fmt.Sprintf(
-				"@%s A Plugin was successfully signed and uploaded to Github and S3.\nTag: **%s**\nRepo: **%s**\n[Release Link](%s)\nTo add this release to the Plugin Marketplace run inside your local Marketplace repository:\n```%s\n```\nUse %s to open a Pull Request.",
-				slashCommand.Username, tag, repo, releaseURL, marketplaceCommand, url,
-			)
-		}
+		msg := getSuccessMessage(tag, repo, commitSHA, releaseURL, slashCommand.Username)
 
 		color := "#0060aa"
 		if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Plugin Release Process", msg, color, IN_CHANNEL)); err != nil {

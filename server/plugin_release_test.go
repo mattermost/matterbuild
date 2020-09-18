@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-github/github"
 	"github.com/mattermost/matterbuild/server/mocks"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -371,4 +372,35 @@ func TestDownloadAsset(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, expectedData, string(data))
 	})
+}
+
+func TestGetSuccessMessage(t *testing.T) {
+	repo := "mattermost-plugin-jira"
+	tag := "v3.0.0"
+	commitSHA := "8ba315752a0ea59d319f71b71fb8c5cb6f353f77"
+	releaseURL := "https://github.com/mattermost/mattermost-plugin-jira/releases/tag/v3.0.0"
+	username := "foo"
+
+	actualMessage := getSuccessMessage(tag, repo, commitSHA, releaseURL, username)
+	expectedMessage := `@foo A Plugin was successfully signed and uploaded to Github and S3.
+Tag: **v3.0.0**
+Repo: **mattermost-plugin-jira**
+CommitSHA: **8ba315752a0ea59d319f71b71fb8c5cb6f353f77**
+[Release Link](https://github.com/mattermost/mattermost-plugin-jira/releases/tag/v3.0.0)
+To add this release to the Plugin Marketplace run inside your local Marketplace repository:` + "\n```\n" +
+		`git checkout production
+git pull
+git checkout -b add_mattermost-plugin-jira_v3.0.0
+go run ./cmd/generator/ add mattermost-plugin-jira v3.0.0 [--official|--community]` + "\n```\n" +
+		"Use `--official` for plugins maintained by Matttermost and `--community` for ones mainted by the Open Source community.\n" +
+		"You might want to use other flag like `--beta` to add a `Beta` label.\n" +
+		"\n" +
+		"Then review your changes by running `git diff plugins.json`" + "\n```\n" +
+		`make generate
+git commit plugins.json data/statik/statik.go -m "Add v3.0.0 of mattermost-plugin-jira to the Marketplace"
+git push --set-upstream origin add_mattermost-plugin-jira_v3.0.0
+git checkout master` + "\n```\n" +
+		`Use https://github.com/mattermost/mattermost-marketplace/compare/production...add_mattermost-plugin-jira_v3.0.0?quick_pull=1&labels=3:+QA+Review,2:+Dev+Review to open a Pull Request.`
+
+	assert.Equal(t, expectedMessage, actualMessage)
 }
