@@ -499,7 +499,7 @@ func downloadAsset(ctx context.Context, client *GithubClient, owner, repositoryN
 func getPluginAsset(ctx context.Context, githubClient *GithubClient, owner, repo, tag string) (*github.ReleaseAsset, error) {
 	LogInfo("Checking if the release asset is available")
 
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
 	defer cancel()
 
 	for {

@@ -22,4 +22,4 @@ secretGenerator:
 images:
   - name: mattermost/matterbuild
     newName: mattermost/matterbuild
-    newTag: 0.3.3
+    newTag: 0.3.4
