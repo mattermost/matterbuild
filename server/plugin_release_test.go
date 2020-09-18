@@ -392,6 +392,9 @@ To add this release to the Plugin Marketplace run inside your local Marketplace 
 git pull
 git checkout -b add_mattermost-plugin-jira_v3.0.0
 go run ./cmd/generator/ add mattermost-plugin-jira v3.0.0 [--official|--community]` + "\n```\n" +
+		"Use `--official` for plugins maintained by Matttermost and `--community` for ones mainted by the Open Source community.\n" +
+		"You might want to use other flag like `--beta` to add a `Beta` label.\n" +
+		"\n" +
 		"Then review your changes by running `git diff plugins.json`" + "\n```\n" +
 		`make generate
 git commit plugins.json data/statik/statik.go -m "Add v3.0.0 of mattermost-plugin-jira to the Marketplace"

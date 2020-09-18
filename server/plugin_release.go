@@ -790,6 +790,9 @@ git checkout -b %[3]s
 go run ./cmd/generator/ add %[2]s %[1]s [--official|--community]
 `, tag, repo, branch) +
 		codeSeperator + "\n" +
+		"Use `--official` for plugins maintained by Matttermost and `--community` for ones mainted by the Open Source community.\n" +
+		"You might want to use other flag like `--beta` to add a `Beta` label.\n" +
+		"\n" +
 		"Then review your changes by running `git diff plugins.json`\n" +
 		codeSeperator +
 		fmt.Sprintf(`
