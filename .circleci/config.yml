@@ -6,6 +6,9 @@ jobs:
     steps:
       - checkout
       - run: make check-style
+      
+orbs:
+  tools: gotest/tools@0.0.13
 
   test:
     docker:
