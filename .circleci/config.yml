@@ -9,8 +9,8 @@ jobs:
       - image: circleci/golang:1.13
     steps:
       - checkout
-      - gotest/tools:
-          to: make check-style
+      - tools/install-golangci-lint
+      - tools/lint
   test:
     docker:
       - image: circleci/golang:1.13
@@ -60,11 +60,13 @@ workflows:
   version: 2
   untagged-build:
     jobs:
-      - lint
+      - tools/install-golangci-lint
+      - tools/lint
       - test
       - build:
           requires:
-            - lint
+            - tools/install-golangci-lint
+            - tools/lint
             - test
       - docker:
           name: docker-pr
