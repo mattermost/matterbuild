@@ -1,4 +1,8 @@
 version: 2.1
+
+orbs:
+  tools: gotest/tools@0.0.13
+
 jobs:
   lint:
     docker:
@@ -6,10 +10,6 @@ jobs:
     steps:
       - checkout
       - run: make check-style
-      
-orbs:
-  tools: gotest/tools@0.0.13
-
   test:
     docker:
       - image: circleci/golang:1.13
