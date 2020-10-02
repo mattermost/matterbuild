@@ -59,13 +59,11 @@ jobs:
 workflows:
   version: 2
   untagged-build:
-    jobs:
-      - tools/install-golangci-lint
+   jobs:
       - tools/lint
       - test
       - build:
           requires:
-            - tools/install-golangci-lint
             - tools/lint
             - test
       - docker:
