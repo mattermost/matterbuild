@@ -41,14 +41,7 @@ var ErrTagExists = errors.New("tag already exists.")
 // This generates:
 // 1. Plugin signature (uploaded to github)
 // 2. Platform specific plugin tars and their signatures (uploaded to s3 release bucket)
-// and also marks the tag to be a pre-release if preRelease is set as true
-func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient, owner, repositoryName, tag string, preRelease bool) error {
-
-	if preRelease {
-		if err := markTagAsPreRelease(ctx, client, owner, repositoryName, tag, preRelease); err != nil {
-			return errors.Wrap(err, "failed to mark tag as pre-release")
-		}
-	}
+func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient, owner, repositoryName, tag string) error {
 
 	pluginAsset, err := getPluginAsset(ctx, client, owner, repositoryName, tag)
 	if err != nil {
@@ -133,8 +126,9 @@ func getReleaseByTag(ctx context.Context, client *GithubClient, owner, repositor
 }
 
 // createTag creates a new tag at the given commit for the repository.
+// Also arks the release with the given tag as pre-release if the preRelease flag is set true
 // Returns ErrTagExists if tag already exists, nil if successful and an error otherwise.
-func createTag(ctx context.Context, client *GithubClient, owner, repository, tag, commitSHA string) error {
+func createTag(ctx context.Context, client *GithubClient, owner, repository, tag, commitSHA string, preRelease bool) error {
 	tagRef := fmt.Sprintf("tags/%s", tag)
 	refs, _, err := client.Git.GetRefs(ctx, owner, repository, tagRef)
 	if err != nil {
@@ -181,6 +175,12 @@ func createTag(ctx context.Context, client *GithubClient, owner, repository, tag
 
 	if _, _, err = client.Git.CreateTag(ctx, owner, repository, githubTag); err != nil {
 		return errors.Wrap(err, "failed to create tag")
+	}
+
+	if preRelease {
+		if err = markTagAsPreRelease(ctx, client, owner, repository, tag, preRelease); err != nil {
+			return errors.Wrap(err, "failed to mark release as pre-release")
+		}
 	}
 
 	refTag := &github.Reference{

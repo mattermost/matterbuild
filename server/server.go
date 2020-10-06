@@ -474,7 +474,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	}
 	command := slashCommand.Command + " " + slashCommand.Text
 	msg := fmt.Sprintf("@%s triggered a plugin %srelease process using `%s`.\nTag %s created in`%s`. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", slashCommand.Username, releasePrefix, command, tag, repo)
-	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
+	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA, preRelease); errors.Is(err, ErrTagExists) {
 		if !force {
 			WriteErrorResponse(w, NewError(fmt.Errorf("@%s Tag %s already exists in %s. Not generating any artifacts. Use --force to regenerate artifacts.", slashCommand.Username, repo, tag).Error(), nil))
 			return nil
@@ -488,7 +488,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	WriteEnrichedResponse(w, "Plugin Release Process", msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
-		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag, preRelease); err != nil {
+		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
 			LogError("failed to cutplugin %s", err.Error())
 			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			errColor := "#fc081c"

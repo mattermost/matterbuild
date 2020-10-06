@@ -170,7 +170,7 @@ func TestCreateTag(t *testing.T) {
 		}
 		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
 
-		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
+		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA, false)
 		require.NoError(t, err)
 	})
 
@@ -209,7 +209,7 @@ func TestCreateTag(t *testing.T) {
 		}
 		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
 
-		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
+		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA, false)
 		require.NoError(t, err)
 	})
 
@@ -257,7 +257,7 @@ func TestCreateTag(t *testing.T) {
 		}
 		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
 
-		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
+		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA, false)
 		require.NoError(t, err)
 	})
 
@@ -308,7 +308,7 @@ func TestCreateTag(t *testing.T) {
 		}
 		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
 
-		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
+		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA, false)
 		require.Error(t, err)
 		require.True(t, errors.Is(err, ErrTagExists))
 	})
