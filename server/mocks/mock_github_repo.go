@@ -67,6 +67,22 @@ func (mr *MockGithubRepositoriesServiceMockRecorder) DownloadReleaseAsset(arg0, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadReleaseAsset", reflect.TypeOf((*MockGithubRepositoriesService)(nil).DownloadReleaseAsset), arg0, arg1, arg2, arg3)
 }
 
+// EditRelease mocks base method
+func (m *MockGithubRepositoriesService) EditRelease(arg0 context.Context, arg1, arg2 string, arg3 int64, arg4 *github.RepositoryRelease) (*github.RepositoryRelease, *github.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EditRelease", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(*github.RepositoryRelease)
+	ret1, _ := ret[1].(*github.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// EditRelease indicates an expected call of EditRelease
+func (mr *MockGithubRepositoriesServiceMockRecorder) EditRelease(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditRelease", reflect.TypeOf((*MockGithubRepositoriesService)(nil).EditRelease), arg0, arg1, arg2, arg3, arg4)
+}
+
 // GetCommit mocks base method
 func (m *MockGithubRepositoriesService) GetCommit(arg0 context.Context, arg1, arg2, arg3 string) (*github.RepositoryCommit, *github.Response, error) {
 	m.ctrl.T.Helper()

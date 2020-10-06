@@ -246,7 +246,7 @@ func initCommands(w http.ResponseWriter, command *MMSlashCommand) *cobra.Command
 	}
 
 	var cutPluginCmd = &cobra.Command{
-		Use:   "cutplugin [--tag] [--repo] [--commitSHA] [--force]",
+		Use:   "cutplugin [--tag] [--repo] [--commitSHA] [--force] [--pre-release]",
 		Short: "Cut a release of any plugin under Mattermost Organization",
 		Long:  "Cut a release of any plugin under Mattermost Organization.",
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -254,13 +254,15 @@ func initCommands(w http.ResponseWriter, command *MMSlashCommand) *cobra.Command
 			repo, _ := cmd.Flags().GetString("repo")
 			commitSHA, _ := cmd.Flags().GetString("commitSHA")
 			force, _ := cmd.Flags().GetBool("force")
-			return cutPluginCommandF(w, command, tag, repo, commitSHA, force)
+			preRelease, _ := cmd.Flags().GetBool("pre-release")
+			return cutPluginCommandF(w, command, tag, repo, commitSHA, force, preRelease)
 		},
 	}
 	cutPluginCmd.Flags().String("tag", "", "Set this flag for the tag you want to release.")
 	cutPluginCmd.Flags().String("repo", "", "Set this flag for the plugin repository.")
 	cutPluginCmd.Flags().String("commitSHA", "", "Set this flag for the commit you want to use for the tag. Defaults to master's tip.")
 	cutPluginCmd.Flags().Bool("force", false, "Set this flag to regenerate assets for a given repository.")
+	cutPluginCmd.Flags().Bool("pre-release", false, "Set this flag to label this version as pre-release.")
 
 	var setCIBranchCmd = &cobra.Command{
 		Use:   "setci",
@@ -439,7 +441,7 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 	return nil
 }
 
-func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag, repo, commitSHA string, force bool) error {
+func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag, repo, commitSHA string, force bool, preRelease bool) error {
 	if tag == "" {
 		WriteErrorResponse(w, NewError("Tag should not be empty", nil))
 		return nil
@@ -466,8 +468,12 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
+	releasePrefix := ""
+	if preRelease {
+		releasePrefix = "pre-"
+	}
 	command := slashCommand.Command + " " + slashCommand.Text
-	msg := fmt.Sprintf("@%s triggered a plugin release process using `%s`.\nTag %s created in`%s`. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", slashCommand.Username, command, tag, repo)
+	msg := fmt.Sprintf("@%s triggered a plugin %srelease process using `%s`.\nTag %s created in`%s`. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", slashCommand.Username, releasePrefix, command, tag, repo)
 	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
 		if !force {
 			WriteErrorResponse(w, NewError(fmt.Errorf("@%s Tag %s already exists in %s. Not generating any artifacts. Use --force to regenerate artifacts.", slashCommand.Username, repo, tag).Error(), nil))
@@ -482,7 +488,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	WriteEnrichedResponse(w, "Plugin Release Process", msg, "#0060aa", IN_CHANNEL)
 
 	go func() {
-		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
+		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag, preRelease); err != nil {
 			LogError("failed to cutplugin %s", err.Error())
 			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			errColor := "#fc081c"

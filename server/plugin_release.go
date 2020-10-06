@@ -41,7 +41,15 @@ var ErrTagExists = errors.New("tag already exists.")
 // This generates:
 // 1. Plugin signature (uploaded to github)
 // 2. Platform specific plugin tars and their signatures (uploaded to s3 release bucket)
-func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient, owner, repositoryName, tag string) error {
+// and also marks the tag to be a pre-release if preRelease is set as true
+func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient, owner, repositoryName, tag string, preRelease bool) error {
+
+	if preRelease {
+		if err := markTagAsPreRelease(ctx, client, owner, repositoryName, tag, preRelease); err != nil {
+			return errors.Wrap(err, "failed to mark tag as pre-release")
+		}
+	}
+
 	pluginAsset, err := getPluginAsset(ctx, client, owner, repositoryName, tag)
 	if err != nil {
 		return errors.Wrap(err, "failed to get plugin asset")
@@ -541,6 +549,23 @@ func getPluginAsset(ctx context.Context, githubClient *GithubClient, owner, repo
 		case <-timer.C:
 		}
 	}
+}
+
+func markTagAsPreRelease(ctx context.Context, githubClient *GithubClient, owner, repo, tag string, preRelease bool) error {
+	LogInfo("Marking tag as pre release")
+
+	release, _, err := githubClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
+	if err != nil {
+		return errors.Wrap(err, "failed to get release by tag")
+	}
+
+	_, _, err = githubClient.Repositories.EditRelease(ctx, owner, repo, release.GetID(), &github.RepositoryRelease{Prerelease: &preRelease})
+	if err != nil {
+		return errors.Wrap(err, "error while uploading to github.")
+	}
+
+	LogInfo("Done marking tag as pre release")
+	return nil
 }
 
 func uploadFilesToGithub(ctx context.Context, githubClient *GithubClient, owner, repo, tag string, filePaths []string) error {
