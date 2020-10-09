@@ -11,7 +11,8 @@ jobs:
       - checkout
       - tools/install-golangci-lint:
           golangci-lint-version: 1.31.0
-      - tools/lint
+      - tools/lint:
+          golangci-lint-version: 1.31.0
   test:
     docker:
       - image: circleci/golang:1.13
@@ -61,7 +62,8 @@ workflows:
   version: 2
   untagged-build:
    jobs:
-      - tools/lint
+      - tools/lint:
+          golangci-lint-version: 1.31.0
       - test
       - build:
           requires:
