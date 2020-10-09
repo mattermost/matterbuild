@@ -77,7 +77,6 @@ func SetLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) erro
 	}
 
 	return nil
-
 }
 
 // Get the existing website config if any exists
@@ -216,7 +215,6 @@ func generateNewRoutesForRelease(result *s3.ListObjectsV2Output, fileSearchValue
 			case strings.HasSuffix(switchValue, ver+"-osx-amd64.tar.gz"):
 				addRoutingRule(*value.Key, fileSearchValue, params, "-osx")
 			}
-
 		}
 	}
 

@@ -630,7 +630,6 @@ func uploadToS3(ctx context.Context, cfg *MatterbuildConfig, filePaths []string)
 }
 
 func getPluginSigningSftpClient(cfg *MatterbuildConfig) (*sftp.Client, error) {
-
 	clientConfig, err := getSSHClientConfig(cfg.PluginSigningSSHUser, cfg.PluginSigningSSHKeyPath, cfg.PluginSigningSSHPublicCertPath, cfg.PluginSigningSSHHostPublicKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to setup client config")

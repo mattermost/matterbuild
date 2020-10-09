@@ -41,7 +41,7 @@ type MMSlashCommand struct {
 	Token       string `schema:"token"`
 	UserId      string `schema:"user_id"`
 	Username    string `schema:"user_name"`
-	ResponseUrl string `schema:"response_url"`
+	ResponseURL string `schema:"response_url"`
 }
 
 type AppError struct {
@@ -94,8 +94,8 @@ func WriteEnrichedResponse(w http.ResponseWriter, title, resp, color, style stri
 	w.Write(GenerateEnrichedSlashResponse(title, resp, color, style))
 }
 
-func PostExtraMessages(responseURL string, payload []byte) error {
-	req, err := http.NewRequest("POST", responseURL, bytes.NewBuffer(payload))
+func PostExtraMessages(ResponseURL string, payload []byte) error {
+	req, err := http.NewRequest("POST", ResponseURL, bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}
@@ -360,7 +360,7 @@ var rcRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+-rc[0-9]+$")
 func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, backport bool,
 	dryrun bool, legacy bool, server string, webapp string) error {
 	if len(args) < 1 {
-		return NewError("You need to specifiy a release version.", nil)
+		return NewError("You need to specify a release version.", nil)
 	}
 
 	versionString := args[0]
@@ -486,7 +486,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 			LogError("failed to cutplugin %s", err.Error())
 			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			errColor := "#fc081c"
-			if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Plugin Release Process", errMsg, errColor, IN_CHANNEL)); err != nil {
+			if err := PostExtraMessages(slashCommand.ResponseURL, GenerateEnrichedSlashResponse("Plugin Release Process", errMsg, errColor, IN_CHANNEL)); err != nil {
 				LogError("failed to post err through PostExtraMessages err=%s", err.Error())
 			}
 			return
@@ -503,12 +503,11 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		msg := getSuccessMessage(tag, repo, commitSHA, releaseURL, slashCommand.Username)
 
 		color := "#0060aa"
-		if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Plugin Release Process", msg, color, IN_CHANNEL)); err != nil {
+		if err := PostExtraMessages(slashCommand.ResponseURL, GenerateEnrichedSlashResponse("Plugin Release Process", msg, color, IN_CHANNEL)); err != nil {
 			LogError("failed to post success msg through PostExtraMessages err=%s", err.Error())
 		}
 	}()
 	return nil
-
 }
 
 func configDumpCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
@@ -544,7 +543,6 @@ func setCIBranchCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlash
 }
 
 func setLatestReleaseURLCmdF(w http.ResponseWriter, slashCommand *MMSlashCommand, typeToRelease string, ver string) error {
-
 	if typeToRelease == "" || ver == "" {
 		WriteErrorResponse(w, NewError("Need to define which of the latest URLs should be updated and what version string to use", nil))
 		return nil
@@ -595,7 +593,6 @@ func checkCutReleaseStatusF(args []string, w http.ResponseWriter, slashCommand *
 }
 
 func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, plt, web, mobile string) error {
-
 	if plt == "" && web == "" && mobile == "" {
 		msg := "You need to set at least one branch to lock. Please check the help."
 		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", IN_CHANNEL)
@@ -647,7 +644,7 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 
 	if len(artifacts) == 0 {
 		LogError("Artifact is empty")
-		return fmt.Errorf("Artifact is empty")
+		return fmt.Errorf("artifact is empty")
 	}
 
 	_, errSave := artifacts[0].SaveToDir("/tmp")

@@ -117,7 +117,6 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 				// Only update the CI servers and community if this is the latest release
 				LogInfo("Setting CI Servers")
 				SetCIServerBranch(releaseBranch)
-
 			}
 		}
 	}()
@@ -140,7 +139,6 @@ func getJob(name, jenkinsUser, jenkinsToken, jenkinsURL string) (*gojenkins.Job,
 	} else {
 		return job, nil
 	}
-
 }
 
 func GetJobConfig(name, jenkinsUser, jenkinsToken, jenkinsURL string) (string, *AppError) {
@@ -212,7 +210,6 @@ func SetCIServerBranch(branch string) *AppError {
 			LogError("[SetCIServerBranch] Unable to save job for " + serverjob + " err=" + err.Error())
 			return NewError("Unable to save job for "+serverjob, err)
 		}
-
 	}
 
 	return nil
