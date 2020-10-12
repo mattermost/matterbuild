@@ -41,7 +41,7 @@ type MMSlashCommand struct {
 	Token       string `schema:"token"`
 	UserId      string `schema:"user_id"`
 	Username    string `schema:"user_name"`
-	ResponseURL string `schema:"response_url"`
+	responseURL string `schema:"response_url"`
 }
 
 type AppError struct {
@@ -94,8 +94,8 @@ func WriteEnrichedResponse(w http.ResponseWriter, title, resp, color, style stri
 	w.Write(GenerateEnrichedSlashResponse(title, resp, color, style))
 }
 
-func PostExtraMessages(ResponseURL string, payload []byte) error {
-	req, err := http.NewRequest("POST", ResponseURL, bytes.NewBuffer(payload))
+func PostExtraMessages(responseURL string, payload []byte) error {
+	req, err := http.NewRequest("POST", responseURL, bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}
@@ -486,7 +486,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 			LogError("failed to cutplugin %s", err.Error())
 			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			errColor := "#fc081c"
-			if err := PostExtraMessages(slashCommand.ResponseURL, GenerateEnrichedSlashResponse("Plugin Release Process", errMsg, errColor, IN_CHANNEL)); err != nil {
+			if err := PostExtraMessages(slashCommand.responseURL, GenerateEnrichedSlashResponse("Plugin Release Process", errMsg, errColor, IN_CHANNEL)); err != nil {
 				LogError("failed to post err through PostExtraMessages err=%s", err.Error())
 			}
 			return
@@ -503,7 +503,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		msg := getSuccessMessage(tag, repo, commitSHA, releaseURL, slashCommand.Username)
 
 		color := "#0060aa"
-		if err := PostExtraMessages(slashCommand.ResponseURL, GenerateEnrichedSlashResponse("Plugin Release Process", msg, color, IN_CHANNEL)); err != nil {
+		if err := PostExtraMessages(slashCommand.responseURL, GenerateEnrichedSlashResponse("Plugin Release Process", msg, color, IN_CHANNEL)); err != nil {
 			LogError("failed to post success msg through PostExtraMessages err=%s", err.Error())
 		}
 	}()
