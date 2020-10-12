@@ -12,6 +12,7 @@ jobs:
       - tools/install-golangci-lint:
           version: 1.31.0
       - run: make check-style
+
   test:
     docker:
       - image: circleci/golang:1.13
@@ -60,7 +61,7 @@ jobs:
 workflows:
   version: 2
   untagged-build:
-   jobs:
+    jobs:
       - lint
       - test
       - build:
