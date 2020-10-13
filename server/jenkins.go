@@ -56,12 +56,14 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 
 	shortRelease := release[:len(release)-2]
 	releaseBranch := "release-" + shortRelease
-	fullRelease := release + "-" + rc
-	rcpart := rc
+
+	var fullRelease string
+	var rcpart string
 	if rc == "" {
-		rcpart = ""
 		fullRelease = release
+		rcpart = ""
 	} else {
+		fullRelease = release + "-" + rc
 		rcpart = "-" + rc
 	}
 
@@ -107,17 +109,17 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 		if err != nil || result != gojenkins.STATUS_SUCCESS {
 			LogError("Release Job failed. Version=" + fullRelease + " err= " + err.Error() + " Jenkins result= " + result)
 			return
-		} else {
-			// If Release was success trigger the Rctesting job to update
-			LogInfo("Release Job Status: " + result)
-			if !backportRelease {
-				LogInfo("Will trigger Job: " + Cfg.RCTestingJob)
-				RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease}, Cfg.CIServerJenkinsUserName, Cfg.CIServerJenkinsToken, Cfg.CIServerJenkinsURL)
+		}
 
-				// Only update the CI servers and community if this is the latest release
-				LogInfo("Setting CI Servers")
-				SetCIServerBranch(releaseBranch)
-			}
+		// If Release was success trigger the Rctesting job to update
+		LogInfo("Release Job Status: " + result)
+		if !backportRelease {
+			LogInfo("Will trigger Job: " + Cfg.RCTestingJob)
+			RunJobParameters(Cfg.RCTestingJob, map[string]string{"LONG_RELEASE": fullRelease}, Cfg.CIServerJenkinsUserName, Cfg.CIServerJenkinsToken, Cfg.CIServerJenkinsURL)
+
+			// Only update the CI servers and community if this is the latest release
+			LogInfo("Setting CI Servers")
+			SetCIServerBranch(releaseBranch)
 		}
 	}()
 
@@ -125,34 +127,36 @@ func CutRelease(release string, rc string, isFirstMinorRelease bool, backportRel
 }
 
 func getJob(name, jenkinsUser, jenkinsToken, jenkinsURL string) (*gojenkins.Job, *AppError) {
-	jenkins, err := getJenkins(jenkinsUser, jenkinsToken, jenkinsURL)
-
-	if err != nil {
-		LogError("[getJob] Unable to get Jenkins. err=" + err.Error())
-		return nil, err
+	jenkins, appErr := getJenkins(jenkinsUser, jenkinsToken, jenkinsURL)
+	if appErr != nil {
+		LogError("[getJob] Unable to get Jenkins. err=" + appErr.Error())
+		return nil, appErr
 	}
 
 	LogInfo("[getJob] Job Name: " + name)
-	if job, err := jenkins.GetJob(name); err != nil {
+	job, err := jenkins.GetJob(name)
+	if err != nil {
 		LogError("[getJob] Unable to get job: " + name + " err=" + err.Error())
 		return nil, NewError("Unable to get job", err)
-	} else {
-		return job, nil
 	}
+
+	return job, nil
 }
 
 func GetJobConfig(name, jenkinsUser, jenkinsToken, jenkinsURL string) (string, *AppError) {
-	if job, err := getJob(name, jenkinsUser, jenkinsToken, jenkinsURL); err != nil {
-		LogError("[GetJobConfig] Unable to get the Job: " + name + " err=" + err.Error())
-		return "", err
-	} else {
-		if config, err := job.GetConfig(); err != nil {
-			LogError("[GetJobConfig] Unable to get job config for job: " + name + " err=" + err.Error())
-			return "", NewError("Unable to get job config", err)
-		} else {
-			return config, nil
-		}
+	job, appErr := getJob(name, jenkinsUser, jenkinsToken, jenkinsURL)
+	if appErr != nil {
+		LogError("[GetJobConfig] Unable to get the Job: " + name + " err=" + appErr.Error())
+		return "", appErr
 	}
+
+	config, err := job.GetConfig()
+	if err != nil {
+		LogError("[GetJobConfig] Unable to get job config for job: " + name + " err=" + err.Error())
+		return "", NewError("Unable to get job config", err)
+	}
+
+	return config, nil
 }
 
 func SaveJobConfig(name string, config string) *AppError {
@@ -247,7 +251,7 @@ func RunJobWaitForResult(name string, parameters map[string]string) (string, *Ap
 	}
 	status, err3 = build.Poll()
 
-	for ; err3 != nil || status != 200; tries += 1 {
+	for ; err3 != nil || status != 200; tries++ {
 		status, err3 = build.Poll()
 		if tries >= 5 {
 			LogError("[RunJobWaitForResult] Unable to get build for pre-checks job: " + strconv.Itoa(int(newBuildNumber)) + " err=" + err3.Error())
@@ -269,14 +273,15 @@ func RunJobWaitForResult(name string, parameters map[string]string) (string, *Ap
 }
 
 func RunJobParameters(name string, parameters map[string]string, jenkinsUser, jenkinsPassword, jenkinsURL string) *AppError {
-	if job, err := getJob(name, jenkinsUser, jenkinsPassword, jenkinsURL); err != nil {
-		return err
-	} else {
-		_, err2 := job.InvokeSimple(parameters)
-		if err2 != nil {
-			LogError("[RunJobParameters] Unable to envoke job. err=" + err.Error())
-			return NewError("Unable to envoke job.", err)
-		}
+	job, appErr := getJob(name, jenkinsUser, jenkinsPassword, jenkinsURL)
+	if appErr != nil {
+		return appErr
+	}
+
+	_, err := job.InvokeSimple(parameters)
+	if err != nil {
+		LogError("[RunJobParameters] Unable to envoke job. err=" + err.Error())
+		return NewError("Unable to envoke job.", err)
 	}
 
 	return nil

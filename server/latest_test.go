@@ -14,49 +14,43 @@ import (
 )
 
 var s3ObjectOutput *s3.ListObjectsV2Output = &s3.ListObjectsV2Output{
-	Contents: []*s3.Object{
-		&s3.Object{
-			ETag:         aws.String("\"4453bec2407cc30ab7968a1b49d37c2a-32\""),
-			Key:          aws.String("5.21.0/mattermost-5.21.0-linux-amd64.tar.gz"),
-			LastModified: &time.Time{},
-			Size:         aws.Int64(165194772),
-			StorageClass: aws.String("STANDARD"),
-		}, &s3.Object{
-			ETag:         aws.String("\"dc98f3008a7772c48a9dfa3eaa551d04\""),
-			Key:          aws.String("5.21.0/mattermost-5.21.0-linux-amd64.tar.gz.sig"),
-			LastModified: &time.Time{},
-			Size:         aws.Int64(310),
-			StorageClass: aws.String("STANDARD"),
-		},
-		&s3.Object{
-			ETag:         aws.String("\"4453bec2407cc30ab7968a1b49d37c2a-32\""),
-			Key:          aws.String("5.21.0/mattermost-enterprise-5.21.0-linux-amd64.tar.gz"),
-			LastModified: &time.Time{},
-			Size:         aws.Int64(165194772),
-			StorageClass: aws.String("STANDARD"),
-		},
-		&s3.Object{
-			ETag:         aws.String("\"4453bec2407cc30ab7968a1b49d37c2a-32\""),
-			Key:          aws.String("5.21.0/mattermost-enterprise-5.21.0-linux-amd64.tar.gz.sig"),
-			LastModified: &time.Time{},
-			Size:         aws.Int64(310),
-			StorageClass: aws.String("STANDARD"),
-		},
-		&s3.Object{
-			ETag:         aws.String("\"4453bec2407cc30ab7968a1b49d37c2a-32\""),
-			Key:          aws.String("desktop/4.4.0/mattermost-desktop-4.4.0-linux-amd64.deb"),
-			LastModified: &time.Time{},
-			Size:         aws.Int64(310),
-			StorageClass: aws.String("STANDARD"),
-		},
-		&s3.Object{
-			ETag:         aws.String("\"4453bec2407cc30ab7968a1b49d37c2a-31\""),
-			Key:          aws.String("5.21.0/mattermost-team-5.21.0-osx-amd64.tar.gz"),
-			LastModified: &time.Time{},
-			Size:         aws.Int64(160596349),
-			StorageClass: aws.String("STANDARD"),
-		},
-	},
+	Contents: []*s3.Object{{
+		ETag:         aws.String("\"4453bec2407cc30ab7968a1b49d37c2a-32\""),
+		Key:          aws.String("5.21.0/mattermost-5.21.0-linux-amd64.tar.gz"),
+		LastModified: &time.Time{},
+		Size:         aws.Int64(165194772),
+		StorageClass: aws.String("STANDARD"),
+	}, {
+		ETag:         aws.String("\"dc98f3008a7772c48a9dfa3eaa551d04\""),
+		Key:          aws.String("5.21.0/mattermost-5.21.0-linux-amd64.tar.gz.sig"),
+		LastModified: &time.Time{},
+		Size:         aws.Int64(310),
+		StorageClass: aws.String("STANDARD"),
+	}, {
+		ETag:         aws.String("\"4453bec2407cc30ab7968a1b49d37c2a-32\""),
+		Key:          aws.String("5.21.0/mattermost-enterprise-5.21.0-linux-amd64.tar.gz"),
+		LastModified: &time.Time{},
+		Size:         aws.Int64(165194772),
+		StorageClass: aws.String("STANDARD"),
+	}, {
+		ETag:         aws.String("\"4453bec2407cc30ab7968a1b49d37c2a-32\""),
+		Key:          aws.String("5.21.0/mattermost-enterprise-5.21.0-linux-amd64.tar.gz.sig"),
+		LastModified: &time.Time{},
+		Size:         aws.Int64(310),
+		StorageClass: aws.String("STANDARD"),
+	}, {
+		ETag:         aws.String("\"4453bec2407cc30ab7968a1b49d37c2a-32\""),
+		Key:          aws.String("desktop/4.4.0/mattermost-desktop-4.4.0-linux-amd64.deb"),
+		LastModified: &time.Time{},
+		Size:         aws.Int64(310),
+		StorageClass: aws.String("STANDARD"),
+	}, {
+		ETag:         aws.String("\"4453bec2407cc30ab7968a1b49d37c2a-31\""),
+		Key:          aws.String("5.21.0/mattermost-team-5.21.0-osx-amd64.tar.gz"),
+		LastModified: &time.Time{},
+		Size:         aws.Int64(160596349),
+		StorageClass: aws.String("STANDARD"),
+	}},
 	IsTruncated: aws.Bool(false),
 	KeyCount:    aws.Int64(18),
 	MaxKeys:     aws.Int64(1000),

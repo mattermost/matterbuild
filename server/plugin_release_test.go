@@ -14,10 +14,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/github"
-	"github.com/mattermost/matterbuild/server/mocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/mattermost/matterbuild/server/mocks"
 )
 
 func TestCreatePlatformPlugins(t *testing.T) {

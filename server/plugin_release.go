@@ -25,15 +25,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/eugenmayer/go-sshclient/sshwrapper"
 	"github.com/google/go-github/github"
-	"github.com/mattermost/matterbuild/utils"
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/mattermost/matterbuild/utils"
 )
 
-var ErrTagExists = errors.New("tag already exists.")
+var ErrTagExists = errors.New("tag already exists")
 
 // cutPlugin entry point to cutting a release for a plugin.
 // This method DOES NOT generate github plugin release asset (<plugin>.tar.gz).
@@ -673,8 +674,8 @@ func hasAllPlatformBinaries(filePath string) error {
 		}
 
 		name := header.Name
-		switch header.Typeflag {
-		case tar.TypeReg:
+
+		if header.Typeflag == tar.TypeReg {
 			if strings.Contains(name, "plugin-linux-amd64") || strings.Contains(name, "plugin-windows-amd64.exe") || strings.Contains(name, "plugin-darwin-amd64") {
 				serverDist[name] = struct{}{}
 			}
@@ -711,8 +712,7 @@ func archiveContains(filePath string, contains string) ([]string, error) {
 			return nil, errors.Wrapf(err, "failed to read next %s,", filePath)
 		}
 
-		switch header.Typeflag {
-		case tar.TypeReg:
+		if header.Typeflag == tar.TypeReg {
 			baseName := filepath.Base(header.Name)
 			if strings.Contains(baseName, contains) {
 				result = append(result, baseName)

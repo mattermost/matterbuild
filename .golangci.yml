@@ -21,24 +21,24 @@ linters-settings:
 linters:
   disable-all: true
   enable:
-    # - bodyclose
+    - bodyclose
     - deadcode
     # - errcheck
     # - goconst
-    # - gocritic
-    # - gofmt
-    # - goimports
-    # - golint
+    - gocritic
+    - gofmt
+    - goimports
+    - golint
     # - gosec
     - gosimple
-    # - govet
-    # - ineffassign
+    - govet
+    - ineffassign
     - interfacer
     - misspell
     - nakedret
     - staticcheck
     - structcheck
-    # - stylecheck
+    - stylecheck
     - typecheck
     - unconvert
     - unused
