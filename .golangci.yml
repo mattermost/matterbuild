@@ -23,13 +23,10 @@ linters:
   enable:
     - bodyclose
     - deadcode
-    # - errcheck
-    # - goconst
     - gocritic
     - gofmt
     - goimports
     - golint
-    # - gosec
     - gosimple
     - govet
     - ineffassign
