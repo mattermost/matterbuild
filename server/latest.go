@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/client"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -54,12 +53,12 @@ func SetLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) erro
 		return err
 	}
 
-	generateNewRoutesForRelease(result, "mattermost-desktop", ver, params)
+	err = generateNewRoutesForRelease(result, "mattermost-desktop", ver, params)
 	if err != nil {
 		return err
 	}
 
-	generateNewRoutesForRelease(result, "mattermost-team", ver, params)
+	err = generateNewRoutesForRelease(result, "mattermost-team", ver, params)
 	if err != nil {
 		return err
 	}
@@ -77,7 +76,6 @@ func SetLatestURL(typeToRelease string, ver string, cfg *MatterbuildConfig) erro
 	}
 
 	return nil
-
 }
 
 // Get the existing website config if any exists
@@ -88,14 +86,8 @@ func getBucketConfig(svc *s3.S3, bucket string) (*s3.GetBucketWebsiteOutput, err
 
 	result, err := svc.GetBucketWebsite(input)
 	if err != nil {
-		if err, ok := err.(awserr.Error); ok {
-			switch err.Code() {
-			default:
-				LogError(err.Error())
-			}
-		} else {
-			LogError(err.Error())
-		}
+		LogError(err.Error())
+
 		return nil, err
 	}
 	return result, nil
@@ -216,7 +208,6 @@ func generateNewRoutesForRelease(result *s3.ListObjectsV2Output, fileSearchValue
 			case strings.HasSuffix(switchValue, ver+"-osx-amd64.tar.gz"):
 				addRoutingRule(*value.Key, fileSearchValue, params, "-osx")
 			}
-
 		}
 	}
 

@@ -1,10 +1,16 @@
 version: 2.1
+
+orbs:
+  tools: gotest/tools@0.0.13
+
 jobs:
   lint:
     docker:
       - image: circleci/golang:1.13
     steps:
       - checkout
+      - tools/install-golangci-lint:
+          version: 1.31.0
       - run: make check-style
 
   test:

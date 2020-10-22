@@ -63,7 +63,6 @@ func RunCmds(cmds []*exec.Cmd) error {
 	// wait on processes in ascending order
 	for i := 1; i < len(cmds); i++ {
 		if err := cmds[i].Wait(); err != nil {
-
 			// Read error details
 			readWriter, ok := cmds[i].Stderr.(*bufio.ReadWriter)
 			if !ok {

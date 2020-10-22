@@ -18,8 +18,8 @@ func TestCheckSlashPermissions(t *testing.T) {
 		}
 
 		commands := []*MMSlashCommand{
-			{Command: "/matterbuild", Token: "token", UserId: "userid1", Text: "cut 0.0.0-rc0"},
-			{Command: "/matterbuild", Token: "token", UserId: "userid1", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
+			{Command: "/matterbuild", Token: "token", UserID: "userid1", Text: "cut 0.0.0-rc0"},
+			{Command: "/matterbuild", Token: "token", UserID: "userid1", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
 		}
 
 		rootCmd := initCommands(nil, nil)
@@ -35,12 +35,12 @@ func TestCheckSlashPermissions(t *testing.T) {
 			ReleaseUsers:  []string{"userid1", "userid3"},
 		}
 		commands := []*MMSlashCommand{
-			{Command: "/matterbuild", Token: "token", UserId: "userid2", Text: "cut 0.0.0-rc0"},
-			{Command: "/matterbuild", Token: "token", UserId: "userid3", Text: "cut 0.0.0-rc0"},
-			{Command: "/matterbuild", Token: "token", UserId: "userid4", Text: "cut 0.0.0-rc0"},
-			{Command: "/matterbuild", Token: "token", UserId: "userid2", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
-			{Command: "/matterbuild", Token: "token", UserId: "userid3", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
-			{Command: "/matterbuild", Token: "token", UserId: "userid4", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
+			{Command: "/matterbuild", Token: "token", UserID: "userid2", Text: "cut 0.0.0-rc0"},
+			{Command: "/matterbuild", Token: "token", UserID: "userid3", Text: "cut 0.0.0-rc0"},
+			{Command: "/matterbuild", Token: "token", UserID: "userid4", Text: "cut 0.0.0-rc0"},
+			{Command: "/matterbuild", Token: "token", UserID: "userid2", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
+			{Command: "/matterbuild", Token: "token", UserID: "userid3", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
+			{Command: "/matterbuild", Token: "token", UserID: "userid4", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
 		}
 		rootCmd := initCommands(nil, nil)
 		for _, command := range commands {

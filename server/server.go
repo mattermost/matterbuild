@@ -19,6 +19,7 @@ import (
 	"github.com/bndr/gojenkins"
 	"github.com/gorilla/schema"
 	"github.com/julienschmidt/httprouter"
+	"github.com/mattermost/mattermost-server/v5/model"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -26,22 +27,17 @@ import (
 	"github.com/mattermost/matterbuild/version"
 )
 
-const (
-	IN_CHANNEL = "in_channel"
-	EPHEMERAL  = "ephemeral"
-)
-
 type MMSlashCommand struct {
-	ChannelId   string `schema:"channel_id"`
+	ChannelID   string `schema:"channel_id"`
 	ChannelName string `schema:"channel_name"`
 	Command     string `schema:"command"`
 	TeamName    string `schema:"team_domain"`
-	TeamId      string `schema:"team_id"`
+	TeamID      string `schema:"team_id"`
 	Text        string `schema:"text"`
 	Token       string `schema:"token"`
-	UserId      string `schema:"user_id"`
+	UserID      string `schema:"user_id"`
 	Username    string `schema:"user_name"`
-	ResponseUrl string `schema:"response_url"`
+	ResponseURL string `schema:"response_url"`
 }
 
 type AppError struct {
@@ -79,7 +75,7 @@ func Info(info string) {
 func WriteErrorResponse(w http.ResponseWriter, err *AppError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(GenerateStandardSlashResponse(err.Error(), EPHEMERAL)))
+	w.Write([]byte(GenerateStandardSlashResponse(err.Error(), model.COMMAND_RESPONSE_TYPE_EPHEMERAL)))
 }
 
 func WriteResponse(w http.ResponseWriter, resp string, style string) {
@@ -95,17 +91,18 @@ func WriteEnrichedResponse(w http.ResponseWriter, title, resp, color, style stri
 }
 
 func PostExtraMessages(responseURL string, payload []byte) error {
-	req, err := http.NewRequest("POST", responseURL, bytes.NewBuffer(payload))
+	req, err := http.NewRequest(http.MethodPost, responseURL, bytes.NewBuffer(payload))
 	if err != nil {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
-	_, err = client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
+	defer resp.Body.Close()
 
 	return nil
 }
@@ -184,7 +181,7 @@ func checkSlashPermissions(command *MMSlashCommand, rootCmd *cobra.Command) *App
 
 	hasPermissions = false
 	for _, allowedUser := range Cfg.AllowedUsers {
-		if allowedUser == command.UserId {
+		if allowedUser == command.UserID {
 			hasPermissions = true
 			break
 		}
@@ -198,7 +195,7 @@ func checkSlashPermissions(command *MMSlashCommand, rootCmd *cobra.Command) *App
 	if subCommand.Name() == "cut" || subCommand.Name() == "cutplugin" {
 		hasPermissions = false
 		for _, allowedUser := range Cfg.ReleaseUsers {
-			if allowedUser == command.UserId {
+			if allowedUser == command.UserID {
 				hasPermissions = true
 				break
 			}
@@ -350,7 +347,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	err = rootCmd.Execute()
 
 	if err != nil || len(outBuf.String()) > 0 {
-		WriteEnrichedResponse(w, "Information", outBuf.String(), "#0060aa", EPHEMERAL)
+		WriteEnrichedResponse(w, "Information", outBuf.String(), "#0060aa", model.COMMAND_RESPONSE_TYPE_EPHEMERAL)
 	}
 }
 
@@ -360,7 +357,7 @@ var rcRxp = regexp.MustCompile("^[0-9]+.[0-9]+.[0-9]+-rc[0-9]+$")
 func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, backport bool,
 	dryrun bool, legacy bool, server string, webapp string) error {
 	if len(args) < 1 {
-		return NewError("You need to specifiy a release version.", nil)
+		return NewError("You need to specify a release version.", nil)
 	}
 
 	versionString := args[0]
@@ -371,7 +368,8 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 	var rcPart string
 	var isFirstMinorRelease bool
 
-	if rcRxp.MatchString(versionString) {
+	switch {
+	case rcRxp.MatchString(versionString):
 		split := strings.Split(versionString, "-")
 		if len(split) != 2 {
 			WriteErrorResponse(w, NewError("Bad version argument. Can't split on -. Typo? If not the regex might be broken. If so be more careful!!", nil))
@@ -380,11 +378,11 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		releasePart = split[0]
 		rcPart = split[1]
 		isFirstMinorRelease = (rcPart == "rc1" && strings.HasSuffix(releasePart, ".0"))
-	} else if finalVersionRxp.MatchString(versionString) {
+	case finalVersionRxp.MatchString(versionString):
 		releasePart = versionString
 		rcPart = ""
 		isFirstMinorRelease = false
-	} else {
+	default:
 		WriteErrorResponse(w, NewError("Bad version argument. Typo? If not the regex might be broken. If so be more careful!!", nil))
 		return nil
 	}
@@ -407,7 +405,9 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		oneReleaseUp := strings.Join(splitRelease, ".")
 
 		s3URL := "http://releases.mattermost.com/" + oneReleaseUp + "-rc1/mattermost-" + oneReleaseUp + "-rc1-linux-amd64.tar.gz"
-		if resp, err := http.Get(s3URL); err == nil && resp.StatusCode == http.StatusOK {
+		resp, err := http.Get(s3URL)
+		if err == nil && resp.StatusCode == http.StatusOK {
+			resp.Body.Close()
 			WriteErrorResponse(w, NewError("Are you sure this isn't a backport release? I see a future release on s3. ("+oneReleaseUp+")"+http.StatusText(resp.StatusCode), nil))
 			return nil
 		}
@@ -418,7 +418,7 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		WriteErrorResponse(w, err)
 	} else {
 		msg := fmt.Sprintf("Release **%v** is on the way.", args[0])
-		WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", IN_CHANNEL)
+		WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 
 		// If this is a full release update the latest URLs
 		if rcPart == "" {
@@ -432,7 +432,7 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 				return err
 			}
 			msg := fmt.Sprintf("Latest URLs for %s will also be updated to version: %s", typeToRelease, releasePart)
-			WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", IN_CHANNEL)
+			WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 		}
 	}
 
@@ -470,7 +470,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 	msg := fmt.Sprintf("@%s triggered a plugin release process using `%s`.\nTag %s created in`%s`. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", slashCommand.Username, command, tag, repo)
 	if err := createTag(ctx, client, Cfg.GithubOrg, repo, tag, commitSHA); errors.Is(err, ErrTagExists) {
 		if !force {
-			WriteErrorResponse(w, NewError(fmt.Errorf("@%s Tag %s already exists in %s. Not generating any artifacts. Use --force to regenerate artifacts.", slashCommand.Username, repo, tag).Error(), nil))
+			WriteErrorResponse(w, NewError(fmt.Sprintf("@%s Tag %s already exists in %s. Not generating any artifacts. Use --force to regenerate artifacts.", slashCommand.Username, repo, tag), nil))
 			return nil
 		}
 		msg = fmt.Sprintf("@%s Tag %s already exists in %s. Waiting for the artifacts to sign and publish.\nWill report back when the process completes.\nGrab :coffee: and a :doughnut: ", slashCommand.Username, tag, repo)
@@ -479,14 +479,14 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
-	WriteEnrichedResponse(w, "Plugin Release Process", msg, "#0060aa", IN_CHANNEL)
+	WriteEnrichedResponse(w, "Plugin Release Process", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 
 	go func() {
 		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag); err != nil {
 			LogError("failed to cutplugin %s", err.Error())
 			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			errColor := "#fc081c"
-			if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Plugin Release Process", errMsg, errColor, IN_CHANNEL)); err != nil {
+			if err := PostExtraMessages(slashCommand.ResponseURL, GenerateEnrichedSlashResponse("Plugin Release Process", errMsg, errColor, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)); err != nil {
 				LogError("failed to post err through PostExtraMessages err=%s", err.Error())
 			}
 			return
@@ -503,12 +503,11 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		msg := getSuccessMessage(tag, repo, commitSHA, releaseURL, slashCommand.Username)
 
 		color := "#0060aa"
-		if err := PostExtraMessages(slashCommand.ResponseUrl, GenerateEnrichedSlashResponse("Plugin Release Process", msg, color, IN_CHANNEL)); err != nil {
+		if err := PostExtraMessages(slashCommand.ResponseURL, GenerateEnrichedSlashResponse("Plugin Release Process", msg, color, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)); err != nil {
 			LogError("failed to post success msg through PostExtraMessages err=%s", err.Error())
 		}
 	}()
 	return nil
-
 }
 
 func configDumpCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
@@ -523,7 +522,7 @@ func configDumpCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 
 	LogInfo("Config Dump sent... dump=" + config)
 
-	WriteResponse(w, config, IN_CHANNEL)
+	WriteResponse(w, config, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 	return nil
 }
 
@@ -539,12 +538,11 @@ func setCIBranchCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlash
 
 	LogInfo("CI servers now pointed at " + args[0])
 	msg := fmt.Sprintf("CI servers now pointed at **%v**", args[0])
-	WriteEnrichedResponse(w, "CI Servers", msg, "#0060aa", IN_CHANNEL)
+	WriteEnrichedResponse(w, "CI Servers", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 	return nil
 }
 
 func setLatestReleaseURLCmdF(w http.ResponseWriter, slashCommand *MMSlashCommand, typeToRelease string, ver string) error {
-
 	if typeToRelease == "" || ver == "" {
 		WriteErrorResponse(w, NewError("Need to define which of the latest URLs should be updated and what version string to use", nil))
 		return nil
@@ -570,7 +568,7 @@ func runJobCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlashComma
 	}
 
 	msg := fmt.Sprintf("Ran job **%v**", args[0])
-	WriteEnrichedResponse(w, "Jenkins Job", msg, "#0060aa", IN_CHANNEL)
+	WriteEnrichedResponse(w, "Jenkins Job", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 	return nil
 }
 
@@ -590,15 +588,14 @@ func checkCutReleaseStatusF(args []string, w http.ResponseWriter, slashCommand *
 
 	msg := fmt.Sprintf("Status of *%v*: **%v** Duration: **%v**", jobName, status.Status, utils.MilisecsToMinutes(status.Duration))
 
-	WriteEnrichedResponse(w, "Status of Jenkins Job", msg, status.Color, IN_CHANNEL)
+	WriteEnrichedResponse(w, "Status of Jenkins Job", msg, status.Color, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 	return nil
 }
 
 func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, plt, web, mobile string) error {
-
 	if plt == "" && web == "" && mobile == "" {
 		msg := "You need to set at least one branch to lock. Please check the help."
-		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", IN_CHANNEL)
+		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 		return nil
 	}
 
@@ -613,7 +610,7 @@ func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCo
 		msg += fmt.Sprintf("* Mobile Branch: **%v**\n", mobile)
 	}
 
-	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", IN_CHANNEL)
+	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 
 	result, err := RunJobWaitForResult(
 		Cfg.TranslationServerJob,
@@ -635,7 +632,7 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 	if err != nil || result != gojenkins.STATUS_SUCCESS {
 		LogError("Translation job failed. err= " + err.Error() + " Jenkins result= " + result)
 		msg := fmt.Sprintf("Translation Job Fail. Please Check the Jenkins Logs. Jenkins Status: %v", result)
-		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", IN_CHANNEL)
+		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 		return nil
 	}
 
@@ -647,7 +644,7 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 
 	if len(artifacts) == 0 {
 		LogError("Artifact is empty")
-		return fmt.Errorf("Artifact is empty")
+		return fmt.Errorf("artifact is empty")
 	}
 
 	_, errSave := artifacts[0].SaveToDir("/tmp")
@@ -666,17 +663,17 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 
 	LogInfo("Results %s", string(dat))
 	tmpMsg := string(dat)
-	tmpMsg = strings.Replace(tmpMsg, "PLT_BRANCH=", "Server Branch:", -1)
-	tmpMsg = strings.Replace(tmpMsg, "WEB_BRANCH=", "Webapp Branch:", -1)
-	tmpMsg = strings.Replace(tmpMsg, "RN_BRANCH=", "Mobile Branch:", -1)
-	tmpMsg = strings.Replace(tmpMsg, "\"", " **", -1)
+	tmpMsg = strings.ReplaceAll(tmpMsg, "PLT_BRANCH=", "Server Branch:")
+	tmpMsg = strings.ReplaceAll(tmpMsg, "WEB_BRANCH=", "Webapp Branch:")
+	tmpMsg = strings.ReplaceAll(tmpMsg, "RN_BRANCH=", "Mobile Branch:")
+	tmpMsg = strings.ReplaceAll(tmpMsg, "\"", " **")
 	splittedMsg := strings.Split(tmpMsg, "\n")
 	msg := "Translation Server have lock to those Branches:\n"
 	for _, txt := range splittedMsg {
 		msg += fmt.Sprintf("%v\n", txt)
 	}
 
-	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", IN_CHANNEL)
+	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 
 	return nil
 }
