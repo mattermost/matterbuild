@@ -34,7 +34,7 @@ import (
 	"github.com/mattermost/matterbuild/utils"
 )
 
-const pluginAssetTimeout = 40 * time.Minute
+const pluginAssetTimeout = 50 * time.Minute
 
 var ErrTagExists = errors.New("tag already exists")
 
