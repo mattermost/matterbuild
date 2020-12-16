@@ -507,7 +507,7 @@ func getPluginAsset(ctx context.Context, githubClient *GithubClient, owner, repo
 
 	for {
 		// Using timer to avoid memory leaks
-		timer := time.NewTimer(pluginAssetTimeout)
+		timer := time.NewTimer(30 * time.Second)
 		defer timer.Stop()
 
 		release, _, err := githubClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
