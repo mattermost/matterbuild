@@ -34,6 +34,8 @@ import (
 	"github.com/mattermost/matterbuild/utils"
 )
 
+const pluginAssetTimeout = 40 * time.Minute
+
 var ErrTagExists = errors.New("tag already exists")
 
 // cutPlugin entry point to cutting a release for a plugin.
@@ -500,12 +502,12 @@ func downloadAsset(ctx context.Context, client *GithubClient, owner, repositoryN
 func getPluginAsset(ctx context.Context, githubClient *GithubClient, owner, repo, tag string) (*github.ReleaseAsset, error) {
 	LogInfo("Checking if the release asset is available")
 
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, pluginAssetTimeout)
 	defer cancel()
 
 	for {
 		// Using timer to avoid memory leaks
-		timer := time.NewTimer(30 * time.Second)
+		timer := time.NewTimer(pluginAssetTimeout)
 		defer timer.Stop()
 
 		release, _, err := githubClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
