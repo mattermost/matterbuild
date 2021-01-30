@@ -10,11 +10,11 @@ import (
 )
 
 type MatterbuildConfig struct {
-	ListenAddress             string
-	JenkinsURL                string
-	JenkinsUsername           string
-	JenkinsPassword           string
-	S3ReleaseBucket           string
+	ListenAddress   string
+	JenkinsURL      string
+	JenkinsUsername string
+	JenkinsPassword string
+	S3ReleaseBucket string
 
 	AllowedTokens []string
 	AllowedUsers  []string
