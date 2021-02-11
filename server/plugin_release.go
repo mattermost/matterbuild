@@ -786,11 +786,11 @@ func getSuccessMessage(tag, repo, commitSHA, releaseURL, username string) string
 git checkout production
 git pull
 git checkout -b %[3]s
-go run ./cmd/generator/ add %[2]s %[1]s [--official|--community]
+go run ./cmd/generator/ add %[2]s %[1]s [--official|--community] [--beta] [--enterprise]
 `, tag, repo, branch) +
 		codeSeperator + "\n" +
-		"Use `--official` for plugins maintained by Matttermost and `--community` for ones mainted by the Open Source community.\n" +
-		"You might want to use other flag like `--beta` to add a `Beta` label.\n" +
+		"Use `--official` for plugins maintained by Mattermost and `--community` for ones maintained by the Open Source community.\n" +
+		"You might want to use other flag like `--beta` to add a `Beta` label, or `--enterprise` for plugins that require an E20 license.\n" +
 		"\n" +
 		"Then review your changes by running `git diff plugins.json`\n" +
 		codeSeperator +
