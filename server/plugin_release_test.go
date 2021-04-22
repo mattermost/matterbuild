@@ -397,8 +397,7 @@ go run ./cmd/generator/ add mattermost-plugin-jira v3.0.0 [--official|--communit
 		"You might want to use other flag like `--beta` to add a `Beta` label, or `--enterprise` for plugins that require an E20 license.\n" +
 		"\n" +
 		"Then review your changes by running `git diff plugins.json`" + "\n```\n" +
-		`make generate
-git commit plugins.json data/statik/statik.go -m "Add v3.0.0 of mattermost-plugin-jira to the Marketplace"
+		`git commit plugins.json -m "Add v3.0.0 of mattermost-plugin-jira to the Marketplace"
 git push --set-upstream origin add_mattermost-plugin-jira_v3.0.0
 git checkout master` + "\n```\n" +
 		`Use https://github.com/mattermost/mattermost-marketplace/compare/production...add_mattermost-plugin-jira_v3.0.0?quick_pull=1&labels=3:+QA+Review,2:+Dev+Review to open a Pull Request.`
