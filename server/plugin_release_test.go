@@ -432,8 +432,7 @@ func TestMarkTagAsPreRelease(t *testing.T) {
 		ctx := context.Background()
 
 		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
-		var releaseID int64
-		releaseID = 42
+		var releaseID int64 = 42
 		owner := "owner"
 		repoName := "repoName"
 		tag := "testTag"
@@ -457,8 +456,7 @@ func TestMarkTagAsPreRelease(t *testing.T) {
 		ctx := context.Background()
 
 		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
-		var releaseID int64
-		releaseID = 42
+		var releaseID int64 = 42
 		owner := "owner"
 		repoName := "repoName"
 		tag := "testTag"
