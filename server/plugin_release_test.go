@@ -14,10 +14,11 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/go-github/github"
-	"github.com/mattermost/matterbuild/server/mocks"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/mattermost/matterbuild/server/mocks"
 )
 
 func TestCreatePlatformPlugins(t *testing.T) {
@@ -391,9 +392,9 @@ To add this release to the Plugin Marketplace run inside your local Marketplace 
 		`git checkout production
 git pull
 git checkout -b add_mattermost-plugin-jira_v3.0.0
-go run ./cmd/generator/ add mattermost-plugin-jira v3.0.0 [--official|--community]` + "\n```\n" +
-		"Use `--official` for plugins maintained by Matttermost and `--community` for ones mainted by the Open Source community.\n" +
-		"You might want to use other flag like `--beta` to add a `Beta` label.\n" +
+go run ./cmd/generator/ add mattermost-plugin-jira v3.0.0 [--official|--community] [--beta] [--enterprise]` + "\n```\n" +
+		"Use `--official` for plugins maintained by Mattermost and `--community` for ones maintained by the Open Source community.\n" +
+		"You might want to use other flag like `--beta` to add a `Beta` label, or `--enterprise` for plugins that require an E20 license.\n" +
 		"\n" +
 		"Then review your changes by running `git diff plugins.json`" + "\n```\n" +
 		`make generate

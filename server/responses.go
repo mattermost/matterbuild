@@ -17,7 +17,7 @@ type MMSlashResponse struct {
 }
 
 type Attachment struct {
-	Id         int64              `json:"id"`
+	ID         int64              `json:"id"`
 	Fallback   string             `json:"fallback"`
 	Color      string             `json:"color"`
 	Pretext    string             `json:"pretext"`

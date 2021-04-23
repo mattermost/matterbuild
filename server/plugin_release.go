@@ -25,15 +25,18 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/eugenmayer/go-sshclient/sshwrapper"
 	"github.com/google/go-github/github"
-	"github.com/mattermost/matterbuild/utils"
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/mattermost/matterbuild/utils"
 )
 
-var ErrTagExists = errors.New("tag already exists.")
+const pluginAssetTimeout = 50 * time.Minute
+
+var ErrTagExists = errors.New("tag already exists")
 
 // cutPlugin entry point to cutting a release for a plugin.
 // This method DOES NOT generate github plugin release asset (<plugin>.tar.gz).
@@ -507,7 +510,7 @@ func downloadAsset(ctx context.Context, client *GithubClient, owner, repositoryN
 func getPluginAsset(ctx context.Context, githubClient *GithubClient, owner, repo, tag string) (*github.ReleaseAsset, error) {
 	LogInfo("Checking if the release asset is available")
 
-	ctx, cancel := context.WithTimeout(ctx, 20*time.Minute)
+	ctx, cancel := context.WithTimeout(ctx, pluginAssetTimeout)
 	defer cancel()
 
 	for {
@@ -655,7 +658,6 @@ func uploadToS3(ctx context.Context, cfg *MatterbuildConfig, filePaths []string)
 }
 
 func getPluginSigningSftpClient(cfg *MatterbuildConfig) (*sftp.Client, error) {
-
 	clientConfig, err := getSSHClientConfig(cfg.PluginSigningSSHUser, cfg.PluginSigningSSHKeyPath, cfg.PluginSigningSSHPublicCertPath, cfg.PluginSigningSSHHostPublicKey)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to setup client config")
@@ -699,8 +701,8 @@ func hasAllPlatformBinaries(filePath string) error {
 		}
 
 		name := header.Name
-		switch header.Typeflag {
-		case tar.TypeReg:
+
+		if header.Typeflag == tar.TypeReg {
 			if strings.Contains(name, "plugin-linux-amd64") || strings.Contains(name, "plugin-windows-amd64.exe") || strings.Contains(name, "plugin-darwin-amd64") {
 				serverDist[name] = struct{}{}
 			}
@@ -737,8 +739,7 @@ func archiveContains(filePath string, contains string) ([]string, error) {
 			return nil, errors.Wrapf(err, "failed to read next %s,", filePath)
 		}
 
-		switch header.Typeflag {
-		case tar.TypeReg:
+		if header.Typeflag == tar.TypeReg {
 			baseName := filepath.Base(header.Name)
 			if strings.Contains(baseName, contains) {
 				result = append(result, baseName)
@@ -812,11 +813,11 @@ func getSuccessMessage(tag, repo, commitSHA, releaseURL, username string) string
 git checkout production
 git pull
 git checkout -b %[3]s
-go run ./cmd/generator/ add %[2]s %[1]s [--official|--community]
+go run ./cmd/generator/ add %[2]s %[1]s [--official|--community] [--beta] [--enterprise]
 `, tag, repo, branch) +
 		codeSeperator + "\n" +
-		"Use `--official` for plugins maintained by Matttermost and `--community` for ones mainted by the Open Source community.\n" +
-		"You might want to use other flag like `--beta` to add a `Beta` label.\n" +
+		"Use `--official` for plugins maintained by Mattermost and `--community` for ones maintained by the Open Source community.\n" +
+		"You might want to use other flag like `--beta` to add a `Beta` label, or `--enterprise` for plugins that require an E20 license.\n" +
 		"\n" +
 		"Then review your changes by running `git diff plugins.json`\n" +
 		codeSeperator +

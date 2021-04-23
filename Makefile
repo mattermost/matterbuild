@@ -23,15 +23,27 @@ PACKAGES=$(shell go list ./...)
 .PHONY: all
 all: check-style test build
 
+## Checks code style.
+.PHONY: check-style
+check-style: golangci-lint
+	@echo Checking for style guide compliance
+
+## Run golangci-lint on codebase.
+.PHONY: golangci-lint
+golangci-lint:
+	@if ! [ -x "$$(command -v golangci-lint)" ]; then \
+		echo "golangci-lint is not installed. Please see https://github.com/golangci/golangci-lint#install for installation instructions."; \
+		exit 1; \
+	fi; \
+
+
+	@echo Running golangci-lint
+	golangci-lint run ./...
+
 ## Cleans workspace
 .PHONY: clean
 clean:
 	rm -rf dist/ out/
-
-## Runs govet and gofmt against all packages.
-.PHONY: check-style
-check-style: gofmt govet
-	@echo Checking for style guide compliance
 
 ## Runs gofmt against all packages.
 .PHONY: gofmt
