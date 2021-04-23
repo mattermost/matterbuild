@@ -171,7 +171,7 @@ func TestCreateTag(t *testing.T) {
 		}
 		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
 
-		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA, false)
+		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
 		require.NoError(t, err)
 	})
 
@@ -210,7 +210,7 @@ func TestCreateTag(t *testing.T) {
 		}
 		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
 
-		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA, false)
+		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
 		require.NoError(t, err)
 	})
 
@@ -258,7 +258,7 @@ func TestCreateTag(t *testing.T) {
 		}
 		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
 
-		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA, false)
+		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
 		require.NoError(t, err)
 	})
 
@@ -309,7 +309,7 @@ func TestCreateTag(t *testing.T) {
 		}
 		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
 
-		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA, false)
+		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
 		require.Error(t, err)
 		require.True(t, errors.Is(err, ErrTagExists))
 	})
@@ -404,4 +404,75 @@ git checkout master` + "\n```\n" +
 		`Use https://github.com/mattermost/mattermost-marketplace/compare/production...add_mattermost-plugin-jira_v3.0.0?quick_pull=1&labels=3:+QA+Review,2:+Dev+Review to open a Pull Request.`
 
 	assert.Equal(t, expectedMessage, actualMessage)
+}
+
+func TestMarkTagAsPreRelease(t *testing.T) {
+	t.Run("failed to get release by tag", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		ctx := context.Background()
+
+		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
+		owner := "owner"
+		repoName := "repoName"
+		tag := "testTag"
+		expectedErr := errors.New("test error on getting release by tag")
+
+		testClient := &GithubClient{
+			Repositories: repoMock,
+		}
+
+		repoMock.EXPECT().GetReleaseByTag(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(tag)).Return(nil, nil, expectedErr)
+
+		err := markTagAsPreRelease(ctx, testClient, owner, repoName, tag)
+		require.Error(t, err)
+	})
+
+	t.Run("failed to edit release", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		ctx := context.Background()
+
+		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
+		var releaseId int64
+		releaseId = 42
+		owner := "owner"
+		repoName := "repoName"
+		tag := "testTag"
+		release := &github.RepositoryRelease{ID: &releaseId}
+		expectedErr := errors.New("test error on editing release")
+		preRelease := true
+
+		testClient := &GithubClient{
+			Repositories: repoMock,
+		}
+
+		repoMock.EXPECT().GetReleaseByTag(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(tag)).Return(release, nil, nil)
+		repoMock.EXPECT().EditRelease(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(release.GetID()), gomock.Eq(&github.RepositoryRelease{Prerelease: &preRelease})).Return(nil, nil, expectedErr)
+
+		err := markTagAsPreRelease(ctx, testClient, owner, repoName, tag)
+		require.Error(t, err)
+	})
+
+	t.Run("success", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		ctx := context.Background()
+
+		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
+		var releaseId int64
+		releaseId = 42
+		owner := "owner"
+		repoName := "repoName"
+		tag := "testTag"
+		release := &github.RepositoryRelease{ID: &releaseId}
+		preRelease := true
+
+		testClient := &GithubClient{
+			Repositories: repoMock,
+		}
+
+		repoMock.EXPECT().GetReleaseByTag(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(tag)).Return(release, nil, nil)
+		repoMock.EXPECT().EditRelease(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(release.GetID()), gomock.Eq(&github.RepositoryRelease{Prerelease: &preRelease})).Return(nil, nil, nil)
+
+		err := markTagAsPreRelease(ctx, testClient, owner, repoName, tag)
+		require.NoError(t, err)
+	})
 }
