@@ -432,12 +432,12 @@ func TestMarkTagAsPreRelease(t *testing.T) {
 		ctx := context.Background()
 
 		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
-		var releaseId int64
-		releaseId = 42
+		var releaseID int64
+		releaseID = 42
 		owner := "owner"
 		repoName := "repoName"
 		tag := "testTag"
-		release := &github.RepositoryRelease{ID: &releaseId}
+		release := &github.RepositoryRelease{ID: &releaseID}
 		expectedErr := errors.New("test error on editing release")
 		preRelease := true
 
@@ -457,12 +457,12 @@ func TestMarkTagAsPreRelease(t *testing.T) {
 		ctx := context.Background()
 
 		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
-		var releaseId int64
-		releaseId = 42
+		var releaseID int64
+		releaseID = 42
 		owner := "owner"
 		repoName := "repoName"
 		tag := "testTag"
-		release := &github.RepositoryRelease{ID: &releaseId}
+		release := &github.RepositoryRelease{ID: &releaseID}
 		preRelease := true
 
 		testClient := &GithubClient{
