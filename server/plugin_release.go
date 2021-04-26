@@ -139,7 +139,6 @@ func getReleaseByTag(ctx context.Context, client *GithubClient, owner, repositor
 }
 
 // createTag creates a new tag at the given commit for the repository.
-// Also marks the release with the given tag as pre-release if the preRelease flag is set true
 // Returns ErrTagExists if tag already exists, nil if successful and an error otherwise.
 func createTag(ctx context.Context, client *GithubClient, owner, repository, tag, commitSHA string) error {
 	tagRef := fmt.Sprintf("tags/%s", tag)
