@@ -840,8 +840,7 @@ go run ./cmd/generator/ add %[2]s %[1]s [--official|--community] [--beta] [--ent
 		"Then review your changes by running `git diff plugins.json`\n" +
 		codeSeperator +
 		fmt.Sprintf(`
-make generate
-git commit plugins.json data/statik/statik.go -m "Add %[1]s of %[2]s to the Marketplace"
+git commit plugins.json -m "Add %[1]s of %[2]s to the Marketplace"
 git push --set-upstream origin %[3]s
 git checkout master
 `, tag, repo, branch) +
