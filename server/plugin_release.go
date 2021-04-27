@@ -44,8 +44,19 @@ var ErrTagExists = errors.New("tag already exists")
 // This generates:
 // 1. Plugin signature (uploaded to github)
 // 2. Platform specific plugin tars and their signatures (uploaded to s3 release bucket)
-func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient, owner, repositoryName, tag string) error {
-	pluginAsset, err := getPluginAsset(ctx, client, owner, repositoryName, tag)
+func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient, owner, repositoryName, tag string, preRelease bool) error {
+	pluginRelease, err := getPluginRelease(ctx, client, owner, repositoryName, tag)
+	if err != nil {
+		return errors.Wrap(err, "failed to get plugin release")
+	}
+
+	if preRelease {
+		if err = markTagAsPreRelease(ctx, client, owner, repositoryName, tag); err != nil {
+			return errors.Wrap(err, "failed to mark release as pre-release")
+		}
+	}
+
+	pluginAsset, err := getPluginAsset(ctx, pluginRelease)
 	if err != nil {
 		return errors.Wrap(err, "failed to get plugin asset")
 	}
@@ -498,18 +509,14 @@ func downloadAsset(ctx context.Context, client *GithubClient, owner, repositoryN
 	return "", errors.Errorf("failed to download release asset %s", asset.GetName())
 }
 
-// getPluginAsset polls till it finds the plugin tar file.
-func getPluginAsset(ctx context.Context, githubClient *GithubClient, owner, repo, tag string) (*github.ReleaseAsset, error) {
-	LogInfo("Checking if the release asset is available")
+// getPluginRelease polls till it finds the plugin release.
+func getPluginRelease(ctx context.Context, githubClient *GithubClient, owner, repo, tag string) (*github.RepositoryRelease, error) {
+	LogInfo("Checking if the release is available")
 
 	ctx, cancel := context.WithTimeout(ctx, pluginAssetTimeout)
 	defer cancel()
 
 	for {
-		// Using timer to avoid memory leaks
-		timer := time.NewTimer(30 * time.Second)
-		defer timer.Stop()
-
 		release, _, err := githubClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
 		if err != nil {
 			var gerr *github.ErrorResponse
@@ -521,29 +528,65 @@ func getPluginAsset(ctx context.Context, githubClient *GithubClient, owner, repo
 		}
 
 		if release != nil {
-			var foundPluginAsset *github.ReleaseAsset
-			for i := range release.Assets {
-				assetName := release.Assets[i].GetName()
-				if strings.HasSuffix(assetName, ".tar.gz") {
-					if foundPluginAsset != nil {
-						return nil, errors.Errorf("found unexpected file %s", assetName)
-					}
-					foundPluginAsset = &release.Assets[i]
-				}
-			}
-
-			if foundPluginAsset != nil {
-				return foundPluginAsset, nil
-			}
-			LogInfo("Release found but no assets yet. Still waiting...")
+			return release, nil
 		}
 
 		select {
 		case <-ctx.Done():
 			return nil, errors.New("timed out waiting for ok response")
-		case <-timer.C:
+		case <-time.After(30 * time.Second):
 		}
 	}
+}
+
+// getPluginAsset polls till it finds the plugin tar file.
+func getPluginAsset(ctx context.Context, release *github.RepositoryRelease) (*github.ReleaseAsset, error) {
+	LogInfo("Checking if the release asset is available")
+
+	ctx, cancel := context.WithTimeout(ctx, pluginAssetTimeout)
+	defer cancel()
+
+	for {
+		var foundPluginAsset *github.ReleaseAsset
+		for i := range release.Assets {
+			assetName := release.Assets[i].GetName()
+			if strings.HasSuffix(assetName, ".tar.gz") {
+				if foundPluginAsset != nil {
+					return nil, errors.Errorf("found unexpected file %s", assetName)
+				}
+				foundPluginAsset = &release.Assets[i]
+			}
+		}
+
+		if foundPluginAsset != nil {
+			return foundPluginAsset, nil
+		}
+		LogInfo("Release found but no assets yet. Still waiting...")
+
+		select {
+		case <-ctx.Done():
+			return nil, errors.New("timed out waiting for ok response")
+		case <-time.After(30 * time.Second):
+		}
+	}
+}
+
+func markTagAsPreRelease(ctx context.Context, githubClient *GithubClient, owner, repo, tag string) error {
+	LogInfo("Marking tag as pre release")
+
+	release, _, err := githubClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
+	if err != nil {
+		return errors.Wrap(err, "failed to get release by tag")
+	}
+
+	preRelease := true
+	_, _, err = githubClient.Repositories.EditRelease(ctx, owner, repo, release.GetID(), &github.RepositoryRelease{Prerelease: &preRelease})
+	if err != nil {
+		return errors.Wrap(err, "error while uploading to github.")
+	}
+
+	LogInfo("Done marking tag as pre release")
+	return nil
 }
 
 func uploadFilesToGithub(ctx context.Context, githubClient *GithubClient, owner, repo, tag string, filePaths []string) error {

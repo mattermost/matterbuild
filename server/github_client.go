@@ -16,6 +16,7 @@ type GithubRepositoriesService interface {
 	GetCommit(ctx context.Context, owner, repo, sha string) (*github.RepositoryCommit, *github.Response, error)
 	ListTags(ctx context.Context, owner, repo string, opt *github.ListOptions) ([]*github.RepositoryTag, *github.Response, error)
 	GetReleaseByTag(ctx context.Context, owner, repo, tag string) (*github.RepositoryRelease, *github.Response, error)
+	EditRelease(ctx context.Context, owner, repo string, id int64, release *github.RepositoryRelease) (*github.RepositoryRelease, *github.Response, error)
 	ListReleaseAssets(ctx context.Context, owner, repo string, id int64, opt *github.ListOptions) ([]*github.ReleaseAsset, *github.Response, error)
 	DownloadReleaseAsset(ctx context.Context, owner, repo string, id int64) (rc io.ReadCloser, redirectURL string, err error)
 	UploadReleaseAsset(ctx context.Context, owner, repo string, id int64, opt *github.UploadOptions, file *os.File) (*github.ReleaseAsset, *github.Response, error)
