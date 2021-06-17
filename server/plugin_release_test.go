@@ -321,8 +321,8 @@ func TestGetPluginAsset(t *testing.T) {
 
 	t.Run("should find the tarball if only one exists", func(t *testing.T) {
 		release.Assets = []github.ReleaseAsset{
-			{ ID: github.Int64(1), Name: github.String("README.txt") },
-			{ ID: github.Int64(2), Name: github.String("tarball.tar.gz") },
+			{ID: github.Int64(1), Name: github.String("README.txt")},
+			{ID: github.Int64(2), Name: github.String("tarball.tar.gz")},
 		}
 
 		asset, err := getPluginAsset(ctx, release, "")
@@ -332,8 +332,8 @@ func TestGetPluginAsset(t *testing.T) {
 
 	t.Run("should error if more than one tarball exists", func(t *testing.T) {
 		release.Assets = []github.ReleaseAsset{
-			{ ID: github.Int64(1), Name: github.String("tarball.tar.gz") },
-			{ ID: github.Int64(2), Name: github.String("plugin-tarball.tar.gz") },
+			{ID: github.Int64(1), Name: github.String("tarball.tar.gz")},
+			{ID: github.Int64(2), Name: github.String("plugin-tarball.tar.gz")},
 		}
 
 		asset, err := getPluginAsset(ctx, release, "")
@@ -343,8 +343,8 @@ func TestGetPluginAsset(t *testing.T) {
 
 	t.Run("should find a specific asset if a name is passed", func(t *testing.T) {
 		release.Assets = []github.ReleaseAsset{
-			{ ID: github.Int64(1), Name: github.String("tarball.tar.gz") },
-			{ ID: github.Int64(2), Name: github.String("plugin-tarball.tar.gz") },
+			{ID: github.Int64(1), Name: github.String("tarball.tar.gz")},
+			{ID: github.Int64(2), Name: github.String("plugin-tarball.tar.gz")},
 		}
 
 		asset, err := getPluginAsset(ctx, release, "plugin-tarball.tar.gz")

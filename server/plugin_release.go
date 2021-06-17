@@ -543,7 +543,7 @@ func getPluginRelease(ctx context.Context, githubClient *GithubClient, owner, re
 // name provided, it will ensure that there is only one .tar.gz file
 // and use it instead
 func getPluginAsset(ctx context.Context, release *github.RepositoryRelease, assetName string) (*github.ReleaseAsset, error) {
-	if (assetName != "") {
+	if assetName != "" {
 		LogInfo("Checking if the release asset with name %q is available", assetName)
 	} else {
 		LogInfo("Checking if the release asset is available")
@@ -556,8 +556,8 @@ func getPluginAsset(ctx context.Context, release *github.RepositoryRelease, asse
 		var foundPluginAsset *github.ReleaseAsset
 		for i := range release.Assets {
 			name := release.Assets[i].GetName()
-			if (assetName != "") {
-				if (assetName == name) {
+			if assetName != "" {
+				if assetName == name {
 					foundPluginAsset = &release.Assets[i]
 					break
 				}
