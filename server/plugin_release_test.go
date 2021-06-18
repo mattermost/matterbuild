@@ -315,6 +315,44 @@ func TestCreateTag(t *testing.T) {
 	})
 }
 
+func TestGetPluginAsset(t *testing.T) {
+	ctx := context.Background()
+	release := &github.RepositoryRelease{}
+
+	t.Run("should find the tarball if only one exists", func(t *testing.T) {
+		release.Assets = []github.ReleaseAsset{
+			{ID: github.Int64(1), Name: github.String("README.txt")},
+			{ID: github.Int64(2), Name: github.String("tarball.tar.gz")},
+		}
+
+		asset, err := getPluginAsset(ctx, release, "")
+		require.NoError(t, err)
+		require.Equal(t, github.String("tarball.tar.gz"), asset.Name)
+	})
+
+	t.Run("should error if more than one tarball exists", func(t *testing.T) {
+		release.Assets = []github.ReleaseAsset{
+			{ID: github.Int64(1), Name: github.String("tarball.tar.gz")},
+			{ID: github.Int64(2), Name: github.String("plugin-tarball.tar.gz")},
+		}
+
+		asset, err := getPluginAsset(ctx, release, "")
+		require.EqualError(t, err, "found unexpected file plugin-tarball.tar.gz")
+		require.Nil(t, asset)
+	})
+
+	t.Run("should find a specific asset if a name is passed", func(t *testing.T) {
+		release.Assets = []github.ReleaseAsset{
+			{ID: github.Int64(1), Name: github.String("tarball.tar.gz")},
+			{ID: github.Int64(2), Name: github.String("plugin-tarball.tar.gz")},
+		}
+
+		asset, err := getPluginAsset(ctx, release, "plugin-tarball.tar.gz")
+		require.NoError(t, err)
+		require.Equal(t, github.String("plugin-tarball.tar.gz"), asset.Name)
+	})
+}
+
 func TestDownloadAsset(t *testing.T) {
 	t.Run("should error if nothing is downloaded", func(t *testing.T) {
 		ctrl := gomock.NewController(t)

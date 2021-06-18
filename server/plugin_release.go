@@ -44,7 +44,7 @@ var ErrTagExists = errors.New("tag already exists")
 // This generates:
 // 1. Plugin signature (uploaded to github)
 // 2. Platform specific plugin tars and their signatures (uploaded to s3 release bucket)
-func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient, owner, repositoryName, tag string, preRelease bool) error {
+func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient, owner, repositoryName, tag, assetName string, preRelease bool) error {
 	pluginRelease, err := getPluginRelease(ctx, client, owner, repositoryName, tag)
 	if err != nil {
 		return errors.Wrap(err, "failed to get plugin release")
@@ -56,7 +56,7 @@ func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient
 		}
 	}
 
-	pluginAsset, err := getPluginAsset(ctx, pluginRelease)
+	pluginAsset, err := getPluginAsset(ctx, pluginRelease, assetName)
 	if err != nil {
 		return errors.Wrap(err, "failed to get plugin asset")
 	}
@@ -539,9 +539,15 @@ func getPluginRelease(ctx context.Context, githubClient *GithubClient, owner, re
 	}
 }
 
-// getPluginAsset polls till it finds the plugin tar file.
-func getPluginAsset(ctx context.Context, release *github.RepositoryRelease) (*github.ReleaseAsset, error) {
-	LogInfo("Checking if the release asset is available")
+// getPluginAsset polls till it finds the plugin tar file. If no asset
+// name provided, it will ensure that there is only one .tar.gz file
+// and use it instead
+func getPluginAsset(ctx context.Context, release *github.RepositoryRelease, assetName string) (*github.ReleaseAsset, error) {
+	if assetName != "" {
+		LogInfo("Checking if the release asset with name %q is available", assetName)
+	} else {
+		LogInfo("Checking if the release asset is available")
+	}
 
 	ctx, cancel := context.WithTimeout(ctx, pluginAssetTimeout)
 	defer cancel()
@@ -549,10 +555,15 @@ func getPluginAsset(ctx context.Context, release *github.RepositoryRelease) (*gi
 	for {
 		var foundPluginAsset *github.ReleaseAsset
 		for i := range release.Assets {
-			assetName := release.Assets[i].GetName()
-			if strings.HasSuffix(assetName, ".tar.gz") {
+			name := release.Assets[i].GetName()
+			if assetName != "" {
+				if assetName == name {
+					foundPluginAsset = &release.Assets[i]
+					break
+				}
+			} else if strings.HasSuffix(name, ".tar.gz") {
 				if foundPluginAsset != nil {
-					return nil, errors.Errorf("found unexpected file %s", assetName)
+					return nil, errors.Errorf("found unexpected file %s", name)
 				}
 				foundPluginAsset = &release.Assets[i]
 			}
