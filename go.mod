@@ -1,13 +1,11 @@
 module github.com/mattermost/matterbuild
 
-go 1.13
+go 1.16
 
 require (
 	github.com/alecthomas/log4go v0.0.0-20180109082532-d146e6b86faa
 	github.com/aws/aws-sdk-go v1.25.35
-	github.com/beevik/etree v1.1.0
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/bndr/gojenkins v0.2.1-0.20170319170142-e382c473d545
 	github.com/eugenmayer/go-sshclient v0.0.0-20190908070959-1e92f9869e7c
 	github.com/golang/mock v1.4.3
 	github.com/google/go-github v17.0.0+incompatible

@@ -11,9 +11,6 @@ import (
 
 type MatterbuildConfig struct {
 	ListenAddress   string
-	JenkinsURL      string
-	JenkinsUsername string
-	JenkinsPassword string
 	S3ReleaseBucket string
 
 	AllowedTokens []string
@@ -31,20 +28,10 @@ type MatterbuildConfig struct {
 	PluginSigningAWSRegion         string
 	PluginSigningAWSS3PluginBucket string
 
-	CIServerJenkinsUserName string
-	CIServerJenkinsToken    string
-	CIServerJenkinsURL      string
-	CIServerJobs            []string
-
-	ReleaseJob                string
-	ReleaseJobLegacy          string
-	RCTestingJob              string
-	TranslationServerJob      string
-	CheckTranslationServerJob string
-	GithubAccessToken         string
-	GithubUsername            string
-	GithubOrg                 string
-	Repositories              []*Repository
+	GithubAccessToken string
+	GithubUsername    string
+	GithubOrg         string
+	Repositories      []*Repository
 
 	KubeDeployJob string
 }
@@ -54,7 +41,7 @@ type Repository struct {
 	Name  string
 }
 
-var Cfg *MatterbuildConfig = &MatterbuildConfig{}
+var Cfg = &MatterbuildConfig{}
 
 func FindConfigFile(fileName string) string {
 	if _, err := os.Stat("./config/" + fileName); err == nil {

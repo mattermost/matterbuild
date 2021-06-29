@@ -35,9 +35,6 @@ func TestCheckSlashPermissions(t *testing.T) {
 			ReleaseUsers:  []string{"userid1", "userid3"},
 		}
 		commands := []*MMSlashCommand{
-			{Command: "/matterbuild", Token: "token", UserID: "userid2", Text: "cut 0.0.0-rc0"},
-			{Command: "/matterbuild", Token: "token", UserID: "userid3", Text: "cut 0.0.0-rc0"},
-			{Command: "/matterbuild", Token: "token", UserID: "userid4", Text: "cut 0.0.0-rc0"},
 			{Command: "/matterbuild", Token: "token", UserID: "userid2", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
 			{Command: "/matterbuild", Token: "token", UserID: "userid3", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
 			{Command: "/matterbuild", Token: "token", UserID: "userid4", Text: "cutplugin --tag v0.0.0-rc0 --repo testplugin"},
