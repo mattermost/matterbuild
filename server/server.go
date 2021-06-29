@@ -246,7 +246,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	outBuf := &bytes.Buffer{}
 
 	rootCmd.SetArgs(strings.Fields(strings.TrimSpace(command.Text)))
-	rootCmd.SetOutput(outBuf)
+	rootCmd.SetOut(outBuf)
 
 	err = rootCmd.Execute()
 
