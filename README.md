@@ -2,6 +2,8 @@
 
 Matterbuild is an internal Mattermost chatops tool for generating Mattermost releases.
 
+## IMPORTANT: This project is deprecated. Please use https://git.internal.mattermost.com/mattermost/ci/sign-plugin
+
 ## Get Involved
 
 - [Join the discussion on ~Developers: DevOps](https://community.mattermost.com/core/channels/build)
