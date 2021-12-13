@@ -76,7 +76,7 @@ func TestCreatePlatformPlugins(t *testing.T) {
 		require.Nil(t, platformPluginFilePaths)
 	})
 
-	t.Run("darwin plugin tar only has amd64 binaries (missing arm64)", func(t *testing.T) {
+	t.Run("plugin tar only has amd64 binaries (missing arm64)", func(t *testing.T) {
 		tmpFolder, err := ioutil.TempDir("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
