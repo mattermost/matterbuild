@@ -432,36 +432,57 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 	return result, nil
 }
 
+// createPlatformPlugin takes a given plugin.tar.gz and creates a new one at the given path after
+// excluding files from the given platform. Most plugin compilation steps generate a "omniplatform"
+// bundle for easy installation, but we strip out the unnecessary packages when pre-packaging
+// for a specific platform build of Mattermost.
 func createPlatformPlugin(pluginFilePath string, excludePlatforms []string, platformTarPath string) error {
-	// Couldn't achieve gzip level compressions with golang archive api, using shell cmds instead.
+	// tar isn't full-featured enough on MacOS: use gtar instead.
 	tarCmdStr := "tar"
 	if runtime.GOOS == "darwin" {
 		tarCmdStr = "gtar"
 	}
 
-	deleteWildcards := []string{"--wildcards"}
-	for _, deleteWildcard := range excludePlatforms {
-		deleteWildcards = append(deleteWildcards, "--delete")
-		deleteWildcards = append(deleteWildcards, fmt.Sprintf("*%s*", deleteWildcard))
+	dir, err := ioutil.TempDir("", "platform-plugin-*")
+	if err != nil {
+		return errors.Wrap(err, "failed to create temporary directory")
+	}
+	defer os.RemoveAll(dir) // clean up
+
+	// Extract the plugin file to the temporary directory.
+	catCmd := exec.Command("cat", pluginFilePath)
+	gunzipCmd := exec.Command("gunzip")
+	tarCmd := exec.Command(tarCmdStr, "-C", dir, "-x")
+	cmds := []*exec.Cmd{catCmd, gunzipCmd, tarCmd}
+	utils.AssemblePipes(cmds, os.Stdin, os.Stdout)
+	if err = utils.RunCmds(cmds); err != nil {
+		return errors.Wrapf(err, "failed to decompress and extract to temporary directory")
 	}
 
+	// Re-create with some files filtered out. Note that --delete doesn't work here, since it
+	// doesn't handle the files being missing. Also, note that we rely on shell cmds due to
+	// previously being unable to achieve gzip level compressions with golang archive api.
 	f, err := os.Create(platformTarPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create platform tar file %s", platformTarPath)
 	}
 
-	catCmd := exec.Command("cat", pluginFilePath)
-	gunzipCmd := exec.Command("gunzip")
-	tarCmd := exec.Command(tarCmdStr, deleteWildcards...)
-	gzipCmd := exec.Command("gzip")
-	cmds := []*exec.Cmd{catCmd, gunzipCmd, tarCmd, gzipCmd}
+	tarParams := []string{"-C", dir, "-c"}
+	for _, excludePlatform := range excludePlatforms {
+		tarParams = append(tarParams, fmt.Sprintf("--exclude=*%s*", excludePlatform))
+	}
+	tarParams = append(tarParams, ".")
 
+	tarCmd = exec.Command(tarCmdStr, tarParams...)
+	gzipCmd := exec.Command("gzip")
+	cmds = []*exec.Cmd{tarCmd, gzipCmd}
 	utils.AssemblePipes(cmds, os.Stdin, f)
 	if err = utils.RunCmds(cmds); err != nil {
-		return errors.Wrapf(err, "failed to run shell cmds")
+		f.Close()
+		return errors.Wrapf(err, "failed to exclude, tar and recompress")
 	}
 
-	return nil
+	return f.Close()
 }
 
 // downloadAsset Downloads asset into a given folder and returns its path.
