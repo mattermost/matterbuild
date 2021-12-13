@@ -75,6 +75,35 @@ func TestCreatePlatformPlugins(t *testing.T) {
 		require.NotContains(t, err.Error(), "plugin-osx-amd64")
 		require.Nil(t, platformPluginFilePaths)
 	})
+
+	t.Run("darwin plugin tar only has amd64 binaries (missing arm64)", func(t *testing.T) {
+		tmpFolder, err := ioutil.TempDir("", "test")
+		require.NoError(t, err)
+		defer os.RemoveAll(tmpFolder)
+
+		path := filepath.Join("test", "mattermost-plugin-demo-v0.4.1-amd64.tar.gz")
+
+		expectedFiles := map[string]string{
+			"myrepo-mytag-osx-amd64.tar.gz":     "plugin-darwin-amd64",
+			"myrepo-mytag-windows-amd64.tar.gz": "plugin-windows-amd64.exe",
+			"myrepo-mytag-linux-amd64.tar.gz":   "plugin-linux-amd64",
+		}
+		platformPluginFilePaths, err := createPlatformPlugins("myrepo", "mytag", path, tmpFolder)
+		require.NoError(t, err)
+		require.Len(t, platformPluginFilePaths, 3)
+
+		for _, filePath := range platformPluginFilePaths {
+			base := filepath.Base(filePath)
+			require.Contains(t, expectedFiles, base)
+
+			found, err := archiveContains(filePath, "plugin-")
+			require.NoError(t, err)
+			require.Len(t, found, 1)
+			require.Equal(t, expectedFiles[base], found[0])
+			delete(expectedFiles, base)
+		}
+		require.Len(t, expectedFiles, 0)
+	})
 }
 
 func TestArchiveContains(t *testing.T) {
