@@ -1,3 +1,6 @@
+# this will be triggered when we tag or merge to the main branch
+# will build the docker image and push to docke hub
+
 include:
-  - project: 'ci/matterbuild'
+  - project: 'mattermost/ci/matterbuild'
     file: '/all.yml'
