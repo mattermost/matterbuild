@@ -1,6 +1,4 @@
-FROM golang:1.14.2-alpine AS builder
-
-RUN apk add --update --no-cache ca-certificates bash make gcc musl-dev git openssh wget curl bzr
+FROM golang:1.17.6 AS builder
 
 WORKDIR /go/src/matterbuild
 
