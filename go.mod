@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/alecthomas/log4go v0.0.0-20180109082532-d146e6b86faa
-	github.com/aws/aws-sdk-go v1.25.35
+	github.com/aws/aws-sdk-go v1.41.19
 	github.com/beevik/etree v1.1.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bndr/gojenkins v0.2.1-0.20170319170142-e382c473d545
@@ -37,7 +37,7 @@ require (
 	github.com/hnakamur/go-scp v1.0.0 // indirect
 	github.com/hnakamur/go-sshd v0.0.0-20170228152141-dccc3399d26a // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
-	github.com/jmespath/go-jmespath v0.0.0-20180206201540-c2b33e8439af // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/mattermost/go-i18n v1.11.0 // indirect
@@ -53,9 +53,9 @@ require (
 	go.uber.org/atomic v1.6.0 // indirect
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.15.0 // indirect
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344 // indirect
-	golang.org/x/sys v0.0.0-20200828081204-131dc92a58d5 // indirect
-	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
+	golang.org/x/sys v0.0.0-20210423082822-04245dca01da // indirect
+	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
