@@ -9,7 +9,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bndr/gojenkins v0.2.1-0.20170319170142-e382c473d545
 	github.com/eugenmayer/go-sshclient v0.0.0-20190908070959-1e92f9869e7c
-	github.com/golang/mock v1.4.4
+	github.com/golang/mock v1.6.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/gorilla/schema v1.2.0
 	github.com/julienschmidt/httprouter v1.3.0
