@@ -162,7 +162,11 @@ func createTag(ctx context.Context, client *GithubClient, owner, repository, tag
 		var ref *github.Reference
 		ref, _, err = client.Git.GetRef(ctx, owner, repository, "heads/master")
 		if err != nil {
-			return errors.Wrap(err, "failed to get github ref")
+			// perhaps the repo uses main instead?
+			ref, _, err = client.Git.GetRef(ctx, owner, repository, "heads/main")
+		}
+		if err != nil {
+			return errors.Wrap(err, "failed to get github ref for heads/master or heads/main")
 		}
 
 		commitSHA = *ref.Object.SHA
