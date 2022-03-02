@@ -158,15 +158,21 @@ func createTag(ctx context.Context, client *GithubClient, owner, repository, tag
 	}
 
 	if commitSHA == "" {
-		// Use master's tip if commitSHA is not provided
-		var ref *github.Reference
-		ref, _, err = client.Git.GetRef(ctx, owner, repository, "heads/master")
+		// Use the default branch's tip if commitSHA is not provided, or master if not available
+		var repo *github.Repository
+		repo, _, err = client.Repositories.Get(ctx, owner, repository)
+		var branch string
 		if err != nil {
-			// perhaps the repo uses main instead?
-			ref, _, err = client.Git.GetRef(ctx, owner, repository, "heads/main")
+			branch = repo.GetDefaultBranch()
 		}
+		if branch == "" {
+			branch = "master"
+		}
+
+		var ref *github.Reference
+		ref, _, err = client.Git.GetRef(ctx, owner, repository, "heads/"+branch)
 		if err != nil {
-			return errors.Wrap(err, "failed to get github ref for heads/master or heads/main")
+			return errors.Wrap(err, "failed to get github ref")
 		}
 
 		commitSHA = *ref.Object.SHA
