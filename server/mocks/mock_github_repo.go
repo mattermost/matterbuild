@@ -83,6 +83,22 @@ func (mr *MockGithubRepositoriesServiceMockRecorder) EditRelease(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditRelease", reflect.TypeOf((*MockGithubRepositoriesService)(nil).EditRelease), arg0, arg1, arg2, arg3, arg4)
 }
 
+// Get mocks base method
+func (m *MockGithubRepositoriesService) Get(arg0 context.Context, arg1, arg2 string) (*github.Repository, *github.Response, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*github.Repository)
+	ret1, _ := ret[1].(*github.Response)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// Get indicates an expected call of Get
+func (mr *MockGithubRepositoriesServiceMockRecorder) Get(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockGithubRepositoriesService)(nil).Get), arg0, arg1, arg2)
+}
+
 // GetCommit mocks base method
 func (m *MockGithubRepositoriesService) GetCommit(arg0 context.Context, arg1, arg2, arg3 string) (*github.RepositoryCommit, *github.Response, error) {
 	m.ctrl.T.Helper()

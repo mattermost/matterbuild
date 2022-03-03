@@ -170,15 +170,22 @@ func TestCreateTag(t *testing.T) {
 		ctx := context.Background()
 
 		gitMock := mocks.NewMockGithubGitService(ctrl)
+		repoMock := mocks.NewMockGithubRepositoriesService(ctrl)
 		owner := "owner"
 		repoName := "repoName"
 		tag := "testTag"
 		commitSHA := ""
 
 		testClient := &GithubClient{
-			Git: gitMock,
+			Git:          gitMock,
+			Repositories: repoMock,
 		}
 		gitMock.EXPECT().GetRefs(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(fmt.Sprintf("tags/%s", tag))).Return(nil, nil, nil)
+
+		repo := &github.Repository{
+			DefaultBranch: github.String("master"),
+		}
+		repoMock.EXPECT().Get(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName)).Return(repo, nil, nil)
 
 		masterRef := &github.Reference{
 			Object: &github.GitObject{
