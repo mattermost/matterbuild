@@ -70,9 +70,9 @@ func TestCreatePlatformPlugins(t *testing.T) {
 
 		platformPluginFilePaths, err := createPlatformPlugins("myrepo", "mytag", path, tmpFolder)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "plugin-linux-amd64")
-		require.NotContains(t, err.Error(), "plugin-windows-amd64")
-		require.NotContains(t, err.Error(), "plugin-osx-amd64")
+		require.NotContains(t, err.Error(), "plugin-linux-amd64")
+		require.Contains(t, err.Error(), "plugin-windows-amd64")
+		require.Contains(t, err.Error(), "plugin-darwin-amd64")
 		require.Nil(t, platformPluginFilePaths)
 	})
 
@@ -91,6 +91,33 @@ func TestCreatePlatformPlugins(t *testing.T) {
 		platformPluginFilePaths, err := createPlatformPlugins("myrepo", "mytag", path, tmpFolder)
 		require.NoError(t, err)
 		require.Len(t, platformPluginFilePaths, 3)
+
+		for _, filePath := range platformPluginFilePaths {
+			base := filepath.Base(filePath)
+			require.Contains(t, expectedFiles, base)
+
+			found, err := archiveContains(filePath, "plugin-")
+			require.NoError(t, err)
+			require.Len(t, found, 1)
+			require.Equal(t, expectedFiles[base], found[0])
+			delete(expectedFiles, base)
+		}
+		require.Len(t, expectedFiles, 0)
+	})
+
+	t.Run("calls plugin tar has only one platform binary", func(t *testing.T) {
+		tmpFolder, err := ioutil.TempDir("", "test")
+		require.NoError(t, err)
+		defer os.RemoveAll(tmpFolder)
+
+		path := filepath.Join("test", "mattermost-plugin-calls-v0.3.0.tar.gz")
+
+		expectedFiles := map[string]string{
+			"mattermost-plugin-calls-mytag-linux-amd64.tar.gz": "plugin-linux-amd64",
+		}
+		platformPluginFilePaths, err := createPlatformPlugins("mattermost-plugin-calls", "mytag", path, tmpFolder)
+		require.NoError(t, err)
+		require.Len(t, platformPluginFilePaths, 1)
 
 		for _, filePath := range platformPluginFilePaths {
 			base := filepath.Base(filePath)
@@ -146,20 +173,27 @@ func TestArchiveContains(t *testing.T) {
 }
 
 func TestHasAllPlatformBinaries(t *testing.T) {
+	expectedPlatformBinaries := map[string]string{
+		"osx-amd64":     "plugin-darwin-amd64",
+		"windows-amd64": "plugin-windows-amd64.exe",
+		"linux-amd64":   "plugin-linux-amd64",
+	}
+
 	t.Run("invalid archive file", func(t *testing.T) {
-		err := hasAllPlatformBinaries("invalid")
+		err := hasExpectedPlatformBinaries("invalid", expectedPlatformBinaries)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "no such file or directory")
 	})
 
-	t.Run("missing all platform binaries", func(t *testing.T) {
-		err := hasAllPlatformBinaries(filepath.Join("test", "mattermost-plugin-demo-v0.4.1-linux-amd64.tar.gz"))
+	t.Run("missing two platform binaries", func(t *testing.T) {
+		err := hasExpectedPlatformBinaries(filepath.Join("test", "mattermost-plugin-demo-v0.4.1-linux-amd64.tar.gz"), expectedPlatformBinaries)
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "plugin-linux-amd64")
+		require.Contains(t, err.Error(), "plugin-darwin-amd64")
+		require.Contains(t, err.Error(), "plugin-windows-amd64.exe")
 	})
 
 	t.Run("contains all platform binaries", func(t *testing.T) {
-		err := hasAllPlatformBinaries(filepath.Join("test", "mattermost-plugin-demo-v0.4.1.tar.gz"))
+		err := hasExpectedPlatformBinaries(filepath.Join("test", "mattermost-plugin-demo-v0.4.1.tar.gz"), expectedPlatformBinaries)
 		require.NoError(t, err)
 	})
 }
