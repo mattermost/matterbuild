@@ -163,8 +163,8 @@ func createTag(ctx context.Context, client *GithubClient, owner, repository, tag
 		repo, _, err = client.Repositories.Get(ctx, owner, repository)
 
 		branch := "master"
-		if err != nil && repo.DefaultBranch != nil && *repo.DefaultBranch != "" {
-			branch = *repo.DefaultBranch
+		if err == nil && repo.GetDefaultBranch() != "" {
+			branch = repo.GetDefaultBranch()
 		}
 
 		var ref *github.Reference
