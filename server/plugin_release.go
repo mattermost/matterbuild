@@ -161,12 +161,10 @@ func createTag(ctx context.Context, client *GithubClient, owner, repository, tag
 		// Use the default branch's tip if commitSHA is not provided, or master if not available
 		var repo *github.Repository
 		repo, _, err = client.Repositories.Get(ctx, owner, repository)
-		var branch string
-		if err != nil {
+
+		branch := "master"
+		if err == nil && repo.GetDefaultBranch() != "" {
 			branch = repo.GetDefaultBranch()
-		}
-		if branch == "" {
-			branch = "master"
 		}
 
 		var ref *github.Reference
