@@ -4,7 +4,7 @@ go 1.17
 
 require (
 	github.com/alecthomas/log4go v0.0.0-20180109082532-d146e6b86faa
-	github.com/aws/aws-sdk-go v1.38.67
+	github.com/aws/aws-sdk-go v1.43.17
 	github.com/beevik/etree v1.1.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/bndr/gojenkins v0.2.1-0.20170319170142-e382c473d545
@@ -66,9 +66,9 @@ require (
 	go.uber.org/atomic v1.8.0 // indirect
 	go.uber.org/multierr v1.7.0 // indirect
 	go.uber.org/zap v1.17.0 // indirect
-	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect
-	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22 // indirect
-	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
+	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
+	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/protobuf v1.26.0 // indirect
 	gopkg.in/ini.v1 v1.62.0 // indirect
