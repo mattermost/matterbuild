@@ -161,12 +161,10 @@ func createTag(ctx context.Context, client *GithubClient, owner, repository, tag
 		// Use the default branch's tip if commitSHA is not provided, or master if not available
 		var repo *github.Repository
 		repo, _, err = client.Repositories.Get(ctx, owner, repository)
-		var branch string
-		if err != nil {
+
+		branch := "master"
+		if err == nil && repo.GetDefaultBranch() != "" {
 			branch = repo.GetDefaultBranch()
-		}
-		if branch == "" {
-			branch = "master"
 		}
 
 		var ref *github.Reference
@@ -403,26 +401,27 @@ func verifySignatures(pluginFilePaths []string) error {
 // createPlatformPlugins splits plugin tar into platform specific plugin tars.
 // Returns paths to platform plugin tars if successful, or an error otherwise.
 func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder string) ([]string, error) {
-	var result []string
-	if err := hasAllPlatformBinaries(pluginFilePath); err != nil {
-		return nil, errors.Wrap(err, "plugin tar missing platform binaries")
-	}
-
-	platformFileExclusion := map[string][]string{
-		"osx-amd64":     {"windows", "linux", "darwin-arm64"},
-		"windows-amd64": {"darwin", "linux"},
-		"linux-amd64":   {"darwin", "windows", "linux-arm64"},
-	}
-
-	platformFileInclusion := map[string]string{
+	expectedPlatformBinaries := map[string]string{
 		"osx-amd64":     "plugin-darwin-amd64",
 		"windows-amd64": "plugin-windows-amd64.exe",
 		"linux-amd64":   "plugin-linux-amd64",
 	}
 
-	for platform, excludeOtherPlatforms := range platformFileExclusion {
+	// If a plugin has special needs (e.g., it doesn't build for specific platforms), add that here:
+	if repositoryName == "mattermost-plugin-calls" {
+		expectedPlatformBinaries = map[string]string{
+			"linux-amd64": "plugin-linux-amd64",
+		}
+	}
+
+	if err := hasExpectedPlatformBinaries(pluginFilePath, expectedPlatformBinaries); err != nil {
+		return nil, err
+	}
+
+	var result []string
+	for platform, binary := range expectedPlatformBinaries {
 		platformTarPath := filepath.Join(pluginFolder, fmt.Sprintf("%v-%v-%v.tar.gz", repositoryName, tag, platform))
-		err := createPlatformPlugin(pluginFilePath, excludeOtherPlatforms, platformTarPath)
+		err := createPlatformPlugin(pluginFilePath, binary, platformTarPath)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to create platform tar for %s", platformTarPath)
 		}
@@ -432,8 +431,9 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to check files in archive %s,", platformTarPath)
 		}
-		if len(found) != 1 || found[0] != platformFileInclusion[platform] {
-			return nil, errors.Errorf("found wrong platform binary in %s, expected %s, but found %v", platformTarPath, platformFileInclusion[platform], found)
+		if len(found) != 1 || found[0] != expectedPlatformBinaries[platform] {
+			return nil, errors.Errorf("found wrong platform binary in %s, expected %s, but found %v",
+				platformTarPath, expectedPlatformBinaries[platform], found)
 		}
 
 		result = append(result, platformTarPath)
@@ -442,11 +442,11 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 	return result, nil
 }
 
-// createPlatformPlugin takes a given plugin.tar.gz and creates a new one at the given path after
-// excluding files from the given platform. Most plugin compilation steps generate a "omniplatform"
-// bundle for easy installation, but we strip out the unnecessary packages when pre-packaging
+// createPlatformPlugin takes a given plugin.tar.gz and creates a new one at the given path
+// for the given binary. Most plugin compilation steps generate a "omniplatform" bundle for
+// easy installation, but we strip out the unnecessary packages when pre-packaging
 // for a specific platform build of Mattermost.
-func createPlatformPlugin(pluginFilePath string, excludePlatforms []string, platformTarPath string) error {
+func createPlatformPlugin(pluginFilePath, binary, platformTarPath string) error {
 	// tar isn't full-featured enough on MacOS: use gtar instead.
 	tarCmdStr := "tar"
 	if runtime.GOOS == "darwin" {
@@ -469,18 +469,31 @@ func createPlatformPlugin(pluginFilePath string, excludePlatforms []string, plat
 		return errors.Wrapf(err, "failed to decompress and extract to temporary directory")
 	}
 
-	// Re-create with some files filtered out. Note that --delete doesn't work here, since it
-	// doesn't handle the files being missing. Also, note that we rely on shell cmds due to
+	// Re-create with some files filtered out. Also, note that we rely on shell cmds due to
 	// previously being unable to achieve gzip level compressions with golang archive api.
+	dirs, err := os.ReadDir(dir)
+	if err != nil || len(dirs) != 1 {
+		return errors.Wrap(err, "error finding plugin directory")
+	}
+	pluginDir := dirs[0].Name()
+	files, err := filepath.Glob(fmt.Sprintf("%s/%s/server/dist/plugin-*", dir, pluginDir))
+	if err != nil {
+		return errors.Wrap(err, "error finding plugin files")
+	}
+	for _, f := range files {
+		if !strings.HasSuffix(f, binary) {
+			err = os.Remove(f)
+			if err != nil {
+				return errors.Wrap(err, "error removing unneeded plugin binaries")
+			}
+		}
+	}
+
 	f, err := os.Create(platformTarPath)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create platform tar file %s", platformTarPath)
 	}
-
 	tarParams := []string{"-C", dir, "-c"}
-	for _, excludePlatform := range excludePlatforms {
-		tarParams = append(tarParams, fmt.Sprintf("--exclude=*%s*", excludePlatform))
-	}
 	tarParams = append(tarParams, ".")
 
 	tarCmd = exec.Command(tarCmdStr, tarParams...)
@@ -736,8 +749,8 @@ func getPluginSigningSftpClient(cfg *MatterbuildConfig) (*sftp.Client, error) {
 	return sftp, nil
 }
 
-// hasAllPlatformBinaries verifies if plugin tar contains 3 platform binaries.
-func hasAllPlatformBinaries(filePath string) error {
+// hasExpectedPlatformBinaries verifies if plugin tar contains at least the binaries expected
+func hasExpectedPlatformBinaries(filePath string, expectedBinaries map[string]string) error {
 	f, err := os.Open(filePath)
 	if err != nil {
 		return errors.Wrap(err, "failed to setup sftp client")
@@ -749,8 +762,12 @@ func hasAllPlatformBinaries(filePath string) error {
 		return errors.Wrap(err, "failed to read gzip data")
 	}
 
+	foundBinaries := make(map[string]bool, len(expectedBinaries))
+	for _, v := range expectedBinaries {
+		foundBinaries[v] = false
+	}
+
 	tarReader := tar.NewReader(gzf)
-	serverDist := map[string]struct{}{}
 	for {
 		header, err := tarReader.Next()
 		if err == io.EOF {
@@ -760,17 +777,22 @@ func hasAllPlatformBinaries(filePath string) error {
 			return errors.Wrap(err, "failed to read tar data")
 		}
 
-		name := header.Name
+		name := header.FileInfo().Name()
 
 		if header.Typeflag == tar.TypeReg {
-			if strings.Contains(name, "plugin-linux-amd64") || strings.Contains(name, "plugin-windows-amd64.exe") || strings.Contains(name, "plugin-darwin-amd64") {
-				serverDist[name] = struct{}{}
-			}
+			foundBinaries[name] = true
 		}
 	}
 
-	if len(serverDist) != 3 {
-		return errors.Errorf("plugin tar contains %+v, but should contain all platform binaries", serverDist)
+	var missingBinaries []string
+	for k, v := range foundBinaries {
+		if !v {
+			missingBinaries = append(missingBinaries, k)
+		}
+	}
+
+	if len(missingBinaries) > 0 {
+		return errors.Errorf("missing the following binaries: %v", missingBinaries)
 	}
 
 	return nil
