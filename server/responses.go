@@ -47,7 +47,7 @@ func GenerateStandardSlashResponse(text string, respType string) string {
 		Text:         text,
 		GotoLocation: "",
 		Username:     "Matterbuild",
-		IconURL:      "https://www.mattermost.org/wp-content/uploads/2016/04/icon.png",
+		IconURL:      "https://mattermost.com/wp-content/uploads/2022/02/icon.png",
 	}
 
 	b, err := json.Marshal(response)
@@ -65,7 +65,7 @@ func GenerateEnrichedSlashResponse(title, text, color, respType string) []byte {
 		Text:       text,
 		Title:      title,
 		AuthorName: "Matterbuild",
-		AuthorIcon: "https://www.mattermost.org/wp-content/uploads/2016/04/icon.png",
+		AuthorIcon: "https://mattermost.com/wp-content/uploads/2022/02/icon.png",
 	}}
 
 	response := MMSlashResponse{
@@ -74,7 +74,7 @@ func GenerateEnrichedSlashResponse(title, text, color, respType string) []byte {
 		Attachments:  msgAttachment,
 		GotoLocation: "",
 		Username:     "Matterbuild",
-		IconURL:      "https://www.mattermost.org/wp-content/uploads/2016/04/icon.png",
+		IconURL:      "https://mattermost.com/wp-content/uploads/2022/02/icon.png",
 	}
 
 	b, err := json.Marshal(response)
