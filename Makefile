@@ -131,7 +131,7 @@ PATTERN =
 # released the following should be executed: "make release VERSION=0.8.0"
 ## Prepare release
 .PHONY: release
-release: VERSION ?= $(shell git describe --tags 2>/dev/null | sed 's/^v//' | awk -F'[ .]' '{print $(PATTERN)}')
+release: VERSION ?= $(shell git tag | sort -r --version-sort | head -n1 | sed 's/^v//' | awk -F'[ .]' '{print $(PATTERN)}')
 release:
 	@ ./scripts/release.sh "$(VERSION)" "1"
 
