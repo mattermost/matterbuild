@@ -46,21 +46,8 @@ fi
 
 PWD=$(cd $(dirname "$0") && pwd -P)
 
-# get closest GA tag, ignore alpha, beta and rc tags
-function getClosestVersion() {
-    for t in $(git tag --sort=-creatordate); do
-        tag="$t"
-        if [[ $tag == *"-alpha"* || $tag == *"-beta"* || $tag == *"-rc"* ]]; then
-            continue
-        fi
-        break
-    done
-    echo "$tag"
-}
-CLOSEST_VERSION=$(getClosestVersion | sed 's/^v//')
-
 # Bump the released version
-sed -i -E 's|'${CLOSEST_VERSION}'|'${RELEASE_VERSION}'|g' deploy/overlays/prod/kustomization.yaml
+sed -i -E "s|newTag: .*|newTag: ${RELEASE_VERSION}|g" deploy/overlays/prod/kustomization.yaml
 
 # Commit changes
 printf "\033[36m==> %s\033[0m\n" "Commit changes for release version v${RELEASE_VERSION}"
