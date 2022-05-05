@@ -410,7 +410,8 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 	// If a plugin has special needs (e.g., it doesn't build for specific platforms), add that here:
 	if repositoryName == "mattermost-plugin-calls" {
 		expectedPlatformBinaries = map[string]string{
-			"linux-amd64": "plugin-linux-amd64",
+			"linux-amd64":   "plugin-linux-amd64",
+			"freebsd-amd64": "plugin-freebsd-amd64",
 		}
 	}
 
