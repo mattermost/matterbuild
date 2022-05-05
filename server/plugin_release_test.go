@@ -105,19 +105,20 @@ func TestCreatePlatformPlugins(t *testing.T) {
 		require.Len(t, expectedFiles, 0)
 	})
 
-	t.Run("calls plugin tar has only one platform binary", func(t *testing.T) {
+	t.Run("calls plugin tar has only two platform binaries", func(t *testing.T) {
 		tmpFolder, err := ioutil.TempDir("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
-		path := filepath.Join("test", "mattermost-plugin-calls-v0.3.0.tar.gz")
+		path := filepath.Join("test", "mattermost-plugin-calls-v0.5.0.tar.gz")
 
 		expectedFiles := map[string]string{
-			"mattermost-plugin-calls-mytag-linux-amd64.tar.gz": "plugin-linux-amd64",
+			"mattermost-plugin-calls-mytag-linux-amd64.tar.gz":   "plugin-linux-amd64",
+			"mattermost-plugin-calls-mytag-freebsd-amd64.tar.gz": "plugin-freebsd-amd64",
 		}
 		platformPluginFilePaths, err := createPlatformPlugins("mattermost-plugin-calls", "mytag", path, tmpFolder)
 		require.NoError(t, err)
-		require.Len(t, platformPluginFilePaths, 1)
+		require.Len(t, platformPluginFilePaths, 2)
 
 		for _, filePath := range platformPluginFilePaths {
 			base := filepath.Base(filePath)
