@@ -43,7 +43,7 @@ func post(url string, formData url.Values) (map[string]interface{}, error) {
 		return nil, err
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("Invalid request = %s,%s", response.Status, string(responseData))
+		return nil, fmt.Errorf("invalid request = %s,%s", response.Status, string(responseData))
 	}
 
 	var result map[string]interface{}

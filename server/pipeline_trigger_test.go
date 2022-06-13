@@ -20,10 +20,10 @@ func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req), nil
 }
 
-//NewTestClient returns *http.Client with Transport replaced to avoid making real calls
-func NewTestClient(fn RoundTripFunc) *http.Client {
+// NewTestClient returns *http.Client with Transport replaced to avoid making real calls
+func NewTestClient(fn http.RoundTripper) *http.Client {
 	return &http.Client{
-		Transport: RoundTripFunc(fn),
+		Transport: fn,
 	}
 }
 
@@ -123,5 +123,5 @@ func TestTriggerPipelineInvalidToken(t *testing.T) {
 	}
 	_, err := TriggerPipeline(&pipelineTrigger, []string{"BIND_TO_C=CC"})
 	assert.NotNil(t, err)
-	assert.Equal(t, "Invalid request = 403,Forbidden", err.Error())
+	assert.Equal(t, "invalid request = 403,Forbidden", err.Error())
 }
