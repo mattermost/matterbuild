@@ -47,11 +47,22 @@ type MatterbuildConfig struct {
 	Repositories              []*Repository
 
 	KubeDeployJob string
+
+	PipelineTriggers map[string]*PipelineTrigger
 }
 
 type Repository struct {
 	Owner string
 	Name  string
+}
+
+type PipelineTrigger struct {
+	Description string
+	URL         string
+	Token       string
+	Reference   string
+	Variables   map[string]string
+	Users       map[string]string
 }
 
 var Cfg *MatterbuildConfig = &MatterbuildConfig{}
