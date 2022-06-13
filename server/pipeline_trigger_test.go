@@ -12,21 +12,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// RoundTripFunc .
-type RoundTripFunc func(req *http.Request) *http.Response
-
-// RoundTrip .
-func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
-	return f(req), nil
-}
-
-// NewTestClient returns *http.Client with Transport replaced to avoid making real calls
-func NewTestClient(fn http.RoundTripper) *http.Client {
-	return &http.Client{
-		Transport: fn,
-	}
-}
-
 const triggerURL = "http://localhost:8080/trigger"
 const pipelineURL = "https://localhost:8080/pipeline/189"
 
