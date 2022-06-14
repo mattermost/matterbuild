@@ -329,7 +329,8 @@ func initCommands(w http.ResponseWriter, command *MMSlashCommand) *cobra.Command
 		lockTranslationServerCmd,
 		checkBranchTranslationCmd,
 		cutPluginCmd,
-		pipelineTriggerCmd)
+		pipelineTriggerCmd,
+	)
 
 	return rootCmd
 }
@@ -665,8 +666,8 @@ func pipelineTriggerCmdF(args []string, w http.ResponseWriter, slashCommand *MMS
 	const colorErr = "#ee2116"
 	const colorSuccess = "#0060aa"
 
-	if len(args) < 1 {
-		msg := "You need to set at least one pipeline name to trigger."
+	if len(args) == 0 {
+		msg := "You need to set at least one pipeline name to trigger. "
 		if len(Cfg.PipelineTriggers) == 0 {
 			msg += "No trigger is configured. Please configure!"
 		} else {
