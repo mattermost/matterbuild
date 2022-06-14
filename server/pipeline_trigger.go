@@ -17,17 +17,16 @@ func getPipelineFormData(pipelineTrigger *PipelineTrigger, args []string) url.Va
 	data := url.Values{}
 	data.Add("token", pipelineTrigger.Token)
 	data.Add("ref", pipelineTrigger.Reference)
-	for key, value := range pipelineTrigger.Variables {
-		var v = value
-		if search := strings.TrimPrefix(value, "%%"); search != value {
-			for _, r := range args {
-				if replacement := strings.TrimPrefix(r, search+"="); replacement != r {
-					v = replacement
+	for variableName, variableValue := range pipelineTrigger.Variables {
+		if search := strings.TrimPrefix(variableValue, "%%"); search != variableValue {
+			for _, argValue := range args {
+				if replacement := strings.TrimPrefix(argValue, search+"="); replacement != argValue {
+					variableValue = replacement
 					break
 				}
 			}
 		}
-		data.Add(fmt.Sprintf("variables[%s]", key), v)
+		data.Add(fmt.Sprintf("variables[%s]", variableName), variableValue)
 	}
 	return data
 }
@@ -47,7 +46,11 @@ func post(url string, formData url.Values) (map[string]interface{}, error) {
 	}
 
 	var result map[string]interface{}
-	json.Unmarshal(responseData, &result)
+
+	if err := json.Unmarshal(responseData, &result); err != nil {
+		return nil, err
+	}
+
 	return result, nil
 }
 

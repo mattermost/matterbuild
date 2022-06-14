@@ -26,12 +26,12 @@ func TestGetPipelineFormData(t *testing.T) {
 		},
 	}
 
-	data := getPipelineFormData(&pipelineTrigger, []string{"BIND_TO_C=BIND VALUE"})
+	data := getPipelineFormData(&pipelineTrigger, []string{"BIND_TO_C=BIND_VALUE"})
 	assert.NotNil(t, data)
 	assert.Equal(t, "TOKEN", data.Get("token"))
 	assert.Equal(t, "cloud", data.Get("ref"))
 	assert.Equal(t, "B", data.Get("variables[A]"))
-	assert.Equal(t, "BIND VALUE", data.Get("variables[C]"))
+	assert.Equal(t, "BIND_VALUE", data.Get("variables[C]"))
 }
 
 func TestPost(t *testing.T) {
@@ -64,7 +64,7 @@ func TestTriggerPipeline(t *testing.T) {
 
 			assert.Equal(t, "TOKEN", req.FormValue("token"))
 			assert.Equal(t, "cloud", req.FormValue("ref"))
-			assert.Equal(t, "C VALUE", req.FormValue("variables[C]"))
+			assert.Equal(t, "C_VALUE", req.FormValue("variables[C]"))
 			resp, err := httpmock.NewJsonResponse(200, map[string]interface{}{
 				"web_url": pipelineURL,
 			})
@@ -80,7 +80,7 @@ func TestTriggerPipeline(t *testing.T) {
 			"C": "%%BIND_TO_C",
 		},
 	}
-	value, err := TriggerPipeline(&pipelineTrigger, []string{"BIND_TO_C=C VALUE"})
+	value, err := TriggerPipeline(&pipelineTrigger, []string{"BIND_TO_C=C_VALUE"})
 	assert.Nil(t, err)
 	assert.Equal(t, pipelineURL, value)
 }

@@ -688,14 +688,15 @@ func pipelineTriggerCmdF(args []string, w http.ResponseWriter, slashCommand *MMS
 		return nil
 	}
 
-	uid, ok := pipelineTrigger.Users[slashCommand.Username]
-	if !ok || uid != slashCommand.UserID {
+	userID, ok := pipelineTrigger.Users[slashCommand.Username]
+	if !ok || userID != slashCommand.UserID {
 		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("You are not allowed to trigger %s pipeline", triggerName), colorErr, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 		return nil
 	}
 
-	pipelineURL, err := TriggerPipeline(pipelineTrigger, args)
+	pipelineURL, err := TriggerPipeline(pipelineTrigger, args[1:])
 	if err != nil {
+		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("Error while triggering pipeline: %v", err), colorErr, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 		return err
 	}
 
