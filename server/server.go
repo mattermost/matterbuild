@@ -312,16 +312,14 @@ func initCommands(w http.ResponseWriter, command *MMSlashCommand) *cobra.Command
 	}
 
 	var pipelineTriggerCmd = &cobra.Command{
-		Use:   "trigger [--name]",
+		Use:   "trigger [name]",
 		Short: "Trigger a configured pipeline at Gitlab.",
-		Long:  "Trigger a configured pipeline at Gitlab by using predefined configuration defined at PipelineTriggers",
+		Long:  "Trigger a configured pipeline at Gitlab. name should be defined in matterbuild configuration.",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			name, _ := cmd.Flags().GetString("name")
-			return pipelineTriggerCmdF(args, w, command, name)
+			return pipelineTriggerCmdF(args, w, command)
 		},
 	}
 
-	cutPluginCmd.Flags().String("name", "", "Set this flag to the trigger pre-configured pipeline")
 	rootCmd.AddCommand(
 		cutCmd,
 		configDumpCmd,
@@ -663,11 +661,11 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 	return nil
 }
 
-func pipelineTriggerCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, name string) error {
+func pipelineTriggerCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand) error {
 	const colorErr = "#ee2116"
 	const colorSuccess = "#0060aa"
 
-	if name == "" {
+	if len(args) < 1 {
 		msg := "You need to set at least one pipeline name to trigger."
 		if len(Cfg.PipelineTriggers) == 0 {
 			msg += "No trigger is configured. Please configure!"
@@ -681,16 +679,17 @@ func pipelineTriggerCmdF(args []string, w http.ResponseWriter, slashCommand *MMS
 		return nil
 	}
 
-	pipelineTrigger, ok := Cfg.PipelineTriggers[name]
+	triggerName := args[0]
+	pipelineTrigger, ok := Cfg.PipelineTriggers[triggerName]
 
 	if !ok {
-		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("%s is not defined!", name), colorErr, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("%s is not defined!", triggerName), colorErr, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 		return nil
 	}
 
 	uid, ok := pipelineTrigger.Users[slashCommand.Username]
 	if !ok || uid != slashCommand.UserID {
-		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("You are not allowed to trigger %s pipeline", name), colorErr, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("You are not allowed to trigger %s pipeline", triggerName), colorErr, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
 		return nil
 	}
 
