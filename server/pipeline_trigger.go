@@ -54,7 +54,23 @@ func post(url string, formData url.Values) (map[string]interface{}, error) {
 	return result, nil
 }
 
+func validateArguments(args []string) error {
+	if args == nil {
+		return errors.New("undefined arguments")
+	}
+	for _, argValue := range args {
+		if !strings.Contains(argValue, "=") {
+			return fmt.Errorf("arguments should be defined as key value pair. expected key=value, got %s", argValue)
+		}
+	}
+	return nil
+}
+
 func TriggerPipeline(pipelineTrigger *PipelineTrigger, args []string) (string, error) {
+	if err := validateArguments(args); err != nil {
+		return "", err
+	}
+
 	formData := getPipelineFormData(pipelineTrigger, args)
 
 	result, err := post(pipelineTrigger.URL, formData)

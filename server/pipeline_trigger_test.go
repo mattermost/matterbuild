@@ -55,6 +55,17 @@ func TestPost(t *testing.T) {
 	}
 }
 
+func TestValidateArguments(t *testing.T) {
+	validArgs := []string{"A=B", "CPT_DDD=SADKALSDKAL"}
+	inValidArgs := []string{"A=B", "CPT_DDDSADKALSDKAL"}
+
+	assert.Nil(t, validateArguments([]string{}))
+	assert.Nil(t, validateArguments(validArgs))
+
+	assert.Equal(t, "undefined arguments", validateArguments(nil).Error())
+	assert.Equal(t, "arguments should be defined as key value pair. expected key=value, got CPT_DDDSADKALSDKAL", validateArguments(inValidArgs).Error())
+}
+
 func TestTriggerPipeline(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
@@ -109,4 +120,24 @@ func TestTriggerPipelineInvalidToken(t *testing.T) {
 	_, err := TriggerPipeline(&pipelineTrigger, []string{"BIND_TO_C=CC"})
 	assert.NotNil(t, err)
 	assert.Equal(t, "invalid request = 403,Forbidden", err.Error())
+}
+
+func TestTriggerPipelineInvalidArguments(t *testing.T) {
+	pipelineTrigger := PipelineTrigger{
+		URL:       triggerURL,
+		Token:     "TOKENS",
+		Reference: "cloud",
+		Variables: map[string]string{
+			"A":   "B",
+			"Ref": "cloud",
+			"C":   "%%BIND_TO_C",
+		},
+	}
+	_, err := TriggerPipeline(&pipelineTrigger, nil)
+	assert.NotNil(t, err)
+	assert.Equal(t, "undefined arguments", err.Error())
+
+	_, err = TriggerPipeline(&pipelineTrigger, []string{"A=B", "CPT_DDDSADKALSDKAL"})
+	assert.NotNil(t, err)
+	assert.Equal(t, "arguments should be defined as key value pair. expected key=value, got CPT_DDDSADKALSDKAL", err.Error())
 }
