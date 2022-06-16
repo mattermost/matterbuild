@@ -25,6 +25,16 @@ func getPipelineFormData(pipelineTrigger *PipelineTrigger, args []string) url.Va
 					break
 				}
 			}
+		} else if search := strings.TrimPrefix(variableValue, "--"); search != variableValue {
+			for _, argValue := range args {
+				if variableValue == argValue {
+					variableValue = "true"
+					break
+				}
+			}
+			if variableValue != "true" {
+				variableValue = "false"
+			}
 		}
 		data.Add(fmt.Sprintf("variables[%s]", variableName), variableValue)
 	}

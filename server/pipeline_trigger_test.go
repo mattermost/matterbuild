@@ -23,15 +23,19 @@ func TestGetPipelineFormData(t *testing.T) {
 		Variables: map[string]string{
 			"A": "B",
 			"C": "%%BIND_TO_C",
+			"D": "--dry_run",
+			"E": "--local",
 		},
 	}
 
-	data := getPipelineFormData(&pipelineTrigger, []string{"BIND_TO_C=BIND_VALUE"})
+	data := getPipelineFormData(&pipelineTrigger, []string{"BIND_TO_C=BIND_VALUE", "--local"})
 	assert.NotNil(t, data)
 	assert.Equal(t, "TOKEN", data.Get("token"))
 	assert.Equal(t, "cloud", data.Get("ref"))
 	assert.Equal(t, "B", data.Get("variables[A]"))
 	assert.Equal(t, "BIND_VALUE", data.Get("variables[C]"))
+	assert.Equal(t, "false", data.Get("variables[D]"))
+	assert.Equal(t, "true", data.Get("variables[E]"))
 }
 
 func TestPost(t *testing.T) {

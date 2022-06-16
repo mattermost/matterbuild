@@ -33,9 +33,10 @@ To support this feature we decide to follow below decisions:
 We will have dynamic configuration and pipeline definitions. Since triggering pipelines will be done via REST api, it is possible 
 to have generic code. Requirements:
 
-1. We should not allow every pipeline to be triggered from users.
-2. Every pipeline should have different token and different set of allowed users.
+1. Every pipeline should have different set of allowed users. 
+2. Every pipeline should have different token.
 3. Configuration shall support hard-coded and user-defined pipeline variables.
+4. For boolean variables system should support flag style arguments (--enable_flag)
 
 ### Matterbuild Pipeline Configuration
 
