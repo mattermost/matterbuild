@@ -60,7 +60,7 @@ func TestPost(t *testing.T) {
 }
 
 func TestValidateArguments(t *testing.T) {
-	validArgs := []string{"A=B", "CPT_DDD=SADKALSDKAL"}
+	validArgs := []string{"A=B", "CPT_DDD=SADKALSDKAL", "--dry_run"}
 	inValidArgs := []string{"A=B", "CPT_DDDSADKALSDKAL"}
 
 	assert.Nil(t, validateArguments([]string{}))

@@ -69,7 +69,7 @@ func validateArguments(args []string) error {
 		return errors.New("undefined arguments")
 	}
 	for _, argValue := range args {
-		if !strings.Contains(argValue, "=") {
+		if !strings.Contains(argValue, "=") && !strings.HasPrefix(argValue, "--") {
 			return fmt.Errorf("arguments should be defined as key value pair. expected key=value, got %s", argValue)
 		}
 	}
