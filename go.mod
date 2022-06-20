@@ -38,6 +38,7 @@ require (
 	github.com/hnakamur/go-scp v1.0.0 // indirect
 	github.com/hnakamur/go-sshd v0.0.0-20170228152141-dccc3399d26a // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/jarcoal/httpmock v1.2.0
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.11 // indirect
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect

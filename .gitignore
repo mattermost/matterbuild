@@ -47,3 +47,6 @@ out/
 *.crt
 *.pem
 id_rsa
+
+#Editors/IDEs
+.vscode
