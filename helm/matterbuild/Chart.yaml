@@ -1,6 +1,0 @@
-apiVersion: v2
-name: matterbuild
-description: An internal Mattermost chatops tool for generating Mattermost releases
-type: application
-version: 0.0.1
-appVersion: "v0.11.0"
