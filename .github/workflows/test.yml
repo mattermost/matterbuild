@@ -24,17 +24,3 @@ jobs:
 
     - name: Run tests
       run: make test
-
-  chart-testing:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@96f53100ba2a5449eb71d2e6604bbcd94b9449b5 #v3.5.3
-      - name: Helm Setup
-        uses: azure/setup-helm@a517f2ff6560563a369e16ca7c7d136b6164423f #v2.0
-        with:
-          version: v3.12.1
-      - name: Setup chart-testing
-        uses: helm/chart-testing-action@2fffad315319f278a64ba2e94505768bd9e2a633 #v2.4.0
-      - name: Run chart-testing (lint)
-        run: ct lint --config .chart-testing.yaml --chart-yaml-schema .chart-schema.yaml

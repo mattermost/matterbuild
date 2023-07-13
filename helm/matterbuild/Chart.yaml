@@ -4,6 +4,3 @@ description: An internal Mattermost chatops tool for generating Mattermost relea
 type: application
 version: 0.0.1
 appVersion: "v0.11.0"
-maintainers:
-  - name: delivery-team
-    email: "dev-ops@mattermost.com"
