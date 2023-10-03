@@ -11,9 +11,11 @@ RUN CGO_ENABLED=0 make build
 
 ################
 
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 
-RUN apt-get update && \
+RUN export DEBIAN_FRONTEND="noninteractive" && \
+    apt-get update && \
+    apt-get upgrade -y && \
     apt-get install --no-install-recommends -y ca-certificates && \
     apt-get clean all && \
     rm -rf /var/cache/apt/
