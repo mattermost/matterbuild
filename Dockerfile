@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 make build
 
 ################
 
-FROM debian:bullseye-slim
+FROM ubuntu:jammy-20230916
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
     apt-get update && \
