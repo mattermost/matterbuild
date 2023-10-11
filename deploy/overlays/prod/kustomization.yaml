@@ -22,5 +22,5 @@ secretGenerator:
 images:
   - name: mattermost/matterbuild
     newName: mattermost/matterbuild
-    newTag: 0.12.0
+    newTag: 0.12.1
 
