@@ -19,7 +19,7 @@ import (
 	"github.com/bndr/gojenkins"
 	"github.com/gorilla/schema"
 	"github.com/julienschmidt/httprouter"
-	"github.com/mattermost/mattermost-server/v5/model"
+	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -75,7 +75,7 @@ func Info(info string) {
 func WriteErrorResponse(w http.ResponseWriter, err *AppError) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(GenerateStandardSlashResponse(err.Error(), model.COMMAND_RESPONSE_TYPE_EPHEMERAL)))
+	w.Write([]byte(GenerateStandardSlashResponse(err.Error(), model.CommandResponseTypeEphemeral)))
 }
 
 func WriteResponse(w http.ResponseWriter, resp string, style string) {
@@ -358,7 +358,7 @@ func slashCommandHandler(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	err = rootCmd.Execute()
 
 	if err != nil || len(outBuf.String()) > 0 {
-		WriteEnrichedResponse(w, "Information", outBuf.String(), "#0060aa", model.COMMAND_RESPONSE_TYPE_EPHEMERAL)
+		WriteEnrichedResponse(w, "Information", outBuf.String(), "#0060aa", model.CommandResponseTypeEphemeral)
 	}
 }
 
@@ -429,7 +429,7 @@ func cutReleaseCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 		WriteErrorResponse(w, err)
 	} else {
 		msg := fmt.Sprintf("Release **%v** is on the way.", args[0])
-		WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+		WriteEnrichedResponse(w, "Cut Release", msg, "#0060aa", model.CommandResponseTypeInChannel)
 	}
 
 	return nil
@@ -479,14 +479,14 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		return nil
 	}
 
-	WriteEnrichedResponse(w, "Plugin Release Process", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+	WriteEnrichedResponse(w, "Plugin Release Process", msg, "#0060aa", model.CommandResponseTypeInChannel)
 
 	go func() {
 		if err := cutPlugin(ctx, Cfg, client, Cfg.GithubOrg, repo, tag, assetName, preRelease); err != nil {
 			LogError("failed to cutplugin %s", err.Error())
 			errMsg := fmt.Sprintf("Error while signing plugin\nError: %s", err.Error())
 			errColor := "#fc081c"
-			if err := PostExtraMessages(slashCommand.ResponseURL, GenerateEnrichedSlashResponse("Plugin Release Process", errMsg, errColor, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)); err != nil {
+			if err := PostExtraMessages(slashCommand.ResponseURL, GenerateEnrichedSlashResponse("Plugin Release Process", errMsg, errColor, model.CommandResponseTypeInChannel)); err != nil {
 				LogError("failed to post err through PostExtraMessages err=%s", err.Error())
 			}
 			return
@@ -503,7 +503,7 @@ func cutPluginCommandF(w http.ResponseWriter, slashCommand *MMSlashCommand, tag,
 		msg := getSuccessMessage(tag, repo, commitSHA, releaseURL, slashCommand.Username)
 
 		color := "#0060aa"
-		if err := PostExtraMessages(slashCommand.ResponseURL, GenerateEnrichedSlashResponse("Plugin Release Process", msg, color, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)); err != nil {
+		if err := PostExtraMessages(slashCommand.ResponseURL, GenerateEnrichedSlashResponse("Plugin Release Process", msg, color, model.CommandResponseTypeInChannel)); err != nil {
 			LogError("failed to post success msg through PostExtraMessages err=%s", err.Error())
 		}
 	}()
@@ -522,7 +522,7 @@ func configDumpCommandF(args []string, w http.ResponseWriter, slashCommand *MMSl
 
 	LogInfo("Config Dump sent... dump=" + config)
 
-	WriteResponse(w, config, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+	WriteResponse(w, config, model.CommandResponseTypeInChannel)
 	return nil
 }
 
@@ -538,7 +538,7 @@ func setCIBranchCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlash
 
 	LogInfo("CI servers now pointed at " + args[0])
 	msg := fmt.Sprintf("CI servers now pointed at **%v**", args[0])
-	WriteEnrichedResponse(w, "CI Servers", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+	WriteEnrichedResponse(w, "CI Servers", msg, "#0060aa", model.CommandResponseTypeInChannel)
 	return nil
 }
 
@@ -552,7 +552,7 @@ func runJobCmdF(args []string, w http.ResponseWriter, slashCommand *MMSlashComma
 	}
 
 	msg := fmt.Sprintf("Ran job **%v**", args[0])
-	WriteEnrichedResponse(w, "Jenkins Job", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+	WriteEnrichedResponse(w, "Jenkins Job", msg, "#0060aa", model.CommandResponseTypeInChannel)
 	return nil
 }
 
@@ -572,14 +572,14 @@ func checkCutReleaseStatusF(args []string, w http.ResponseWriter, slashCommand *
 
 	msg := fmt.Sprintf("Status of *%v*: **%v** Duration: **%v**", jobName, status.Status, utils.MilisecsToMinutes(status.Duration))
 
-	WriteEnrichedResponse(w, "Status of Jenkins Job", msg, status.Color, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+	WriteEnrichedResponse(w, "Status of Jenkins Job", msg, status.Color, model.CommandResponseTypeInChannel)
 	return nil
 }
 
 func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCommand *MMSlashCommand, plt, web, mobile string) error {
 	if plt == "" && web == "" && mobile == "" {
 		msg := "You need to set at least one branch to lock. Please check the help."
-		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", model.CommandResponseTypeInChannel)
 		return nil
 	}
 
@@ -594,7 +594,7 @@ func lockTranslationServerCommandF(args []string, w http.ResponseWriter, slashCo
 		msg += fmt.Sprintf("* Mobile Branch: **%v**\n", mobile)
 	}
 
-	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", model.CommandResponseTypeInChannel)
 
 	result, err := RunJobWaitForResult(
 		Cfg.TranslationServerJob,
@@ -616,7 +616,7 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 	if err != nil || result != gojenkins.STATUS_SUCCESS {
 		LogError("Translation job failed. err= " + err.Error() + " Jenkins result= " + result)
 		msg := fmt.Sprintf("Translation Job Fail. Please Check the Jenkins Logs. Jenkins Status: %v", result)
-		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+		WriteEnrichedResponse(w, "Translation Server Update", msg, "#ee2116", model.CommandResponseTypeInChannel)
 		return nil
 	}
 
@@ -657,7 +657,7 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 		msg += fmt.Sprintf("%v\n", txt)
 	}
 
-	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+	WriteEnrichedResponse(w, "Translation Server Update", msg, "#0060aa", model.CommandResponseTypeInChannel)
 
 	return nil
 }
@@ -676,7 +676,7 @@ func pipelineTriggerCmdF(args []string, w http.ResponseWriter, slashCommand *MMS
 				msg += fmt.Sprintf("\n**%s**: %s", name, trigger.Description)
 			}
 		}
-		WriteEnrichedResponse(w, "Trigger Pipeline", msg, colorErr, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+		WriteEnrichedResponse(w, "Trigger Pipeline", msg, colorErr, model.CommandResponseTypeInChannel)
 		return nil
 	}
 
@@ -684,23 +684,23 @@ func pipelineTriggerCmdF(args []string, w http.ResponseWriter, slashCommand *MMS
 	pipelineTrigger, ok := Cfg.PipelineTriggers[triggerName]
 
 	if !ok {
-		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("%s is not defined!", triggerName), colorErr, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("%s is not defined!", triggerName), colorErr, model.CommandResponseTypeInChannel)
 		return nil
 	}
 
 	userID, ok := pipelineTrigger.Users[slashCommand.Username]
 	if !ok || userID != slashCommand.UserID {
-		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("You are not allowed to trigger %s pipeline", triggerName), colorErr, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("You are not allowed to trigger %s pipeline", triggerName), colorErr, model.CommandResponseTypeInChannel)
 		return nil
 	}
 
 	pipelineURL, err := TriggerPipeline(pipelineTrigger, args[1:])
 	if err != nil {
-		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("Error while triggering pipeline: %v", err), colorErr, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+		WriteEnrichedResponse(w, "Trigger Pipeline", fmt.Sprintf("Error while triggering pipeline: %v", err), colorErr, model.CommandResponseTypeInChannel)
 		return err
 	}
 
 	msg := fmt.Sprintf("Pipeline triggered successfully. Click [here](%s) to view pipeline execution!", pipelineURL)
-	WriteEnrichedResponse(w, "Trigger Pipeline", msg, colorSuccess, model.COMMAND_RESPONSE_TYPE_IN_CHANNEL)
+	WriteEnrichedResponse(w, "Trigger Pipeline", msg, colorSuccess, model.CommandResponseTypeInChannel)
 	return nil
 }

@@ -366,24 +366,6 @@ func TestCreateTag(t *testing.T) {
 
 		gitMock.EXPECT().GetRefs(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(fmt.Sprintf("tags/%s", tag))).Return(refs, nil, nil)
 
-		githubObj := &github.GitObject{
-			SHA:  github.String(commitSHA),
-			Type: github.String("commit"),
-		}
-		githubTag := &github.Tag{
-			Tag:     github.String(tag),
-			Message: github.String(tag),
-			Object:  githubObj,
-		}
-		gitMock.EXPECT().CreateTag(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(githubTag)).Return(nil, nil, nil)
-		repoMock.EXPECT().GetCommit(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(commitSHA)).Return(nil, nil, nil)
-
-		refTag := &github.Reference{
-			Ref:    github.String(fmt.Sprintf("tags/%s", tag)),
-			Object: githubObj,
-		}
-		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
-
 		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
 		require.Error(t, err)
 		require.True(t, errors.Is(err, ErrTagExists))
