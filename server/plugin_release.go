@@ -442,31 +442,45 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 	return result, nil
 }
 
+// getTarCmdStr returns the appropriate "tar" binary to use.
+func getTarCmdStr() string {
+	// tar isn't full-featured enough on MacOS: use gtar instead.
+	if runtime.GOOS == "darwin" {
+		return "gtar"
+	}
+
+	return "tar"
+}
+
+// unpackPlugin unpacks the given plugin.tar.gz into the given temporary directory.
+func unpackPlugin(pluginFilePath, tmpDir string) error {
+	// Extract the plugin file to the temporary directory.
+	catCmd := exec.Command("cat", pluginFilePath)
+	gunzipCmd := exec.Command("gunzip")
+	tarCmd := exec.Command(getTarCmdStr(), "-C", tmpDir, "-x")
+	cmds := []*exec.Cmd{catCmd, gunzipCmd, tarCmd}
+	utils.AssemblePipes(cmds, os.Stdin, os.Stdout)
+	if err := utils.RunCmds(cmds); err != nil {
+		return errors.Wrapf(err, "failed to decompress and extract to temporary directory")
+	}
+
+	return nil
+}
+
 // createPlatformPlugin takes a given plugin.tar.gz and creates a new one at the given path
 // for the given binary. Most plugin compilation steps generate a "omniplatform" bundle for
 // easy installation, but we strip out the unnecessary packages when pre-packaging
 // for a specific platform build of Mattermost.
 func createPlatformPlugin(pluginFilePath, binary, platformTarPath string) error {
-	// tar isn't full-featured enough on MacOS: use gtar instead.
-	tarCmdStr := "tar"
-	if runtime.GOOS == "darwin" {
-		tarCmdStr = "gtar"
-	}
-
 	dir, err := os.MkdirTemp("", "platform-plugin-*")
 	if err != nil {
 		return errors.Wrap(err, "failed to create temporary directory")
 	}
 	defer os.RemoveAll(dir) // clean up
 
-	// Extract the plugin file to the temporary directory.
-	catCmd := exec.Command("cat", pluginFilePath)
-	gunzipCmd := exec.Command("gunzip")
-	tarCmd := exec.Command(tarCmdStr, "-C", dir, "-x")
-	cmds := []*exec.Cmd{catCmd, gunzipCmd, tarCmd}
-	utils.AssemblePipes(cmds, os.Stdin, os.Stdout)
-	if err = utils.RunCmds(cmds); err != nil {
-		return errors.Wrapf(err, "failed to decompress and extract to temporary directory")
+	err = unpackPlugin(pluginFilePath, dir)
+	if err != nil {
+		return errors.Wrap(err, "failed to unpack plugin")
 	}
 
 	// Re-create with some files filtered out. Also, note that we rely on shell cmds due to
@@ -496,9 +510,9 @@ func createPlatformPlugin(pluginFilePath, binary, platformTarPath string) error 
 	tarParams := []string{"-C", dir, "-c"}
 	tarParams = append(tarParams, ".")
 
-	tarCmd = exec.Command(tarCmdStr, tarParams...)
+	tarCmd := exec.Command(getTarCmdStr(), tarParams...)
 	gzipCmd := exec.Command("gzip")
-	cmds = []*exec.Cmd{tarCmd, gzipCmd}
+	cmds := []*exec.Cmd{tarCmd, gzipCmd}
 	utils.AssemblePipes(cmds, os.Stdin, f)
 	if err = utils.RunCmds(cmds); err != nil {
 		f.Close()
