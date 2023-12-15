@@ -6,37 +6,38 @@ package mocks
 
 import (
 	context "context"
-	gomock "github.com/golang/mock/gomock"
-	github "github.com/google/go-github/github"
 	io "io"
 	os "os"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
+	github "github.com/google/go-github/github"
 )
 
-// MockGithubRepositoriesService is a mock of GithubRepositoriesService interface
+// MockGithubRepositoriesService is a mock of GithubRepositoriesService interface.
 type MockGithubRepositoriesService struct {
 	ctrl     *gomock.Controller
 	recorder *MockGithubRepositoriesServiceMockRecorder
 }
 
-// MockGithubRepositoriesServiceMockRecorder is the mock recorder for MockGithubRepositoriesService
+// MockGithubRepositoriesServiceMockRecorder is the mock recorder for MockGithubRepositoriesService.
 type MockGithubRepositoriesServiceMockRecorder struct {
 	mock *MockGithubRepositoriesService
 }
 
-// NewMockGithubRepositoriesService creates a new mock instance
+// NewMockGithubRepositoriesService creates a new mock instance.
 func NewMockGithubRepositoriesService(ctrl *gomock.Controller) *MockGithubRepositoriesService {
 	mock := &MockGithubRepositoriesService{ctrl: ctrl}
 	mock.recorder = &MockGithubRepositoriesServiceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGithubRepositoriesService) EXPECT() *MockGithubRepositoriesServiceMockRecorder {
 	return m.recorder
 }
 
-// DeleteReleaseAsset mocks base method
+// DeleteReleaseAsset mocks base method.
 func (m *MockGithubRepositoriesService) DeleteReleaseAsset(arg0 context.Context, arg1, arg2 string, arg3 int64) (*github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteReleaseAsset", arg0, arg1, arg2, arg3)
@@ -45,13 +46,13 @@ func (m *MockGithubRepositoriesService) DeleteReleaseAsset(arg0 context.Context,
 	return ret0, ret1
 }
 
-// DeleteReleaseAsset indicates an expected call of DeleteReleaseAsset
+// DeleteReleaseAsset indicates an expected call of DeleteReleaseAsset.
 func (mr *MockGithubRepositoriesServiceMockRecorder) DeleteReleaseAsset(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteReleaseAsset", reflect.TypeOf((*MockGithubRepositoriesService)(nil).DeleteReleaseAsset), arg0, arg1, arg2, arg3)
 }
 
-// DownloadReleaseAsset mocks base method
+// DownloadReleaseAsset mocks base method.
 func (m *MockGithubRepositoriesService) DownloadReleaseAsset(arg0 context.Context, arg1, arg2 string, arg3 int64) (io.ReadCloser, string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DownloadReleaseAsset", arg0, arg1, arg2, arg3)
@@ -61,13 +62,13 @@ func (m *MockGithubRepositoriesService) DownloadReleaseAsset(arg0 context.Contex
 	return ret0, ret1, ret2
 }
 
-// DownloadReleaseAsset indicates an expected call of DownloadReleaseAsset
+// DownloadReleaseAsset indicates an expected call of DownloadReleaseAsset.
 func (mr *MockGithubRepositoriesServiceMockRecorder) DownloadReleaseAsset(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadReleaseAsset", reflect.TypeOf((*MockGithubRepositoriesService)(nil).DownloadReleaseAsset), arg0, arg1, arg2, arg3)
 }
 
-// EditRelease mocks base method
+// EditRelease mocks base method.
 func (m *MockGithubRepositoriesService) EditRelease(arg0 context.Context, arg1, arg2 string, arg3 int64, arg4 *github.RepositoryRelease) (*github.RepositoryRelease, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "EditRelease", arg0, arg1, arg2, arg3, arg4)
@@ -77,13 +78,13 @@ func (m *MockGithubRepositoriesService) EditRelease(arg0 context.Context, arg1, 
 	return ret0, ret1, ret2
 }
 
-// EditRelease indicates an expected call of EditRelease
+// EditRelease indicates an expected call of EditRelease.
 func (mr *MockGithubRepositoriesServiceMockRecorder) EditRelease(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EditRelease", reflect.TypeOf((*MockGithubRepositoriesService)(nil).EditRelease), arg0, arg1, arg2, arg3, arg4)
 }
 
-// Get mocks base method
+// Get mocks base method.
 func (m *MockGithubRepositoriesService) Get(arg0 context.Context, arg1, arg2 string) (*github.Repository, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0, arg1, arg2)
@@ -93,13 +94,13 @@ func (m *MockGithubRepositoriesService) Get(arg0 context.Context, arg1, arg2 str
 	return ret0, ret1, ret2
 }
 
-// Get indicates an expected call of Get
+// Get indicates an expected call of Get.
 func (mr *MockGithubRepositoriesServiceMockRecorder) Get(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockGithubRepositoriesService)(nil).Get), arg0, arg1, arg2)
 }
 
-// GetCommit mocks base method
+// GetCommit mocks base method.
 func (m *MockGithubRepositoriesService) GetCommit(arg0 context.Context, arg1, arg2, arg3 string) (*github.RepositoryCommit, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCommit", arg0, arg1, arg2, arg3)
@@ -109,13 +110,13 @@ func (m *MockGithubRepositoriesService) GetCommit(arg0 context.Context, arg1, ar
 	return ret0, ret1, ret2
 }
 
-// GetCommit indicates an expected call of GetCommit
+// GetCommit indicates an expected call of GetCommit.
 func (mr *MockGithubRepositoriesServiceMockRecorder) GetCommit(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCommit", reflect.TypeOf((*MockGithubRepositoriesService)(nil).GetCommit), arg0, arg1, arg2, arg3)
 }
 
-// GetReleaseByTag mocks base method
+// GetReleaseByTag mocks base method.
 func (m *MockGithubRepositoriesService) GetReleaseByTag(arg0 context.Context, arg1, arg2, arg3 string) (*github.RepositoryRelease, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetReleaseByTag", arg0, arg1, arg2, arg3)
@@ -125,13 +126,13 @@ func (m *MockGithubRepositoriesService) GetReleaseByTag(arg0 context.Context, ar
 	return ret0, ret1, ret2
 }
 
-// GetReleaseByTag indicates an expected call of GetReleaseByTag
+// GetReleaseByTag indicates an expected call of GetReleaseByTag.
 func (mr *MockGithubRepositoriesServiceMockRecorder) GetReleaseByTag(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseByTag", reflect.TypeOf((*MockGithubRepositoriesService)(nil).GetReleaseByTag), arg0, arg1, arg2, arg3)
 }
 
-// ListReleaseAssets mocks base method
+// ListReleaseAssets mocks base method.
 func (m *MockGithubRepositoriesService) ListReleaseAssets(arg0 context.Context, arg1, arg2 string, arg3 int64, arg4 *github.ListOptions) ([]*github.ReleaseAsset, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListReleaseAssets", arg0, arg1, arg2, arg3, arg4)
@@ -141,13 +142,13 @@ func (m *MockGithubRepositoriesService) ListReleaseAssets(arg0 context.Context, 
 	return ret0, ret1, ret2
 }
 
-// ListReleaseAssets indicates an expected call of ListReleaseAssets
+// ListReleaseAssets indicates an expected call of ListReleaseAssets.
 func (mr *MockGithubRepositoriesServiceMockRecorder) ListReleaseAssets(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListReleaseAssets", reflect.TypeOf((*MockGithubRepositoriesService)(nil).ListReleaseAssets), arg0, arg1, arg2, arg3, arg4)
 }
 
-// ListTags mocks base method
+// ListTags mocks base method.
 func (m *MockGithubRepositoriesService) ListTags(arg0 context.Context, arg1, arg2 string, arg3 *github.ListOptions) ([]*github.RepositoryTag, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListTags", arg0, arg1, arg2, arg3)
@@ -157,13 +158,13 @@ func (m *MockGithubRepositoriesService) ListTags(arg0 context.Context, arg1, arg
 	return ret0, ret1, ret2
 }
 
-// ListTags indicates an expected call of ListTags
+// ListTags indicates an expected call of ListTags.
 func (mr *MockGithubRepositoriesServiceMockRecorder) ListTags(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTags", reflect.TypeOf((*MockGithubRepositoriesService)(nil).ListTags), arg0, arg1, arg2, arg3)
 }
 
-// UploadReleaseAsset mocks base method
+// UploadReleaseAsset mocks base method.
 func (m *MockGithubRepositoriesService) UploadReleaseAsset(arg0 context.Context, arg1, arg2 string, arg3 int64, arg4 *github.UploadOptions, arg5 *os.File) (*github.ReleaseAsset, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadReleaseAsset", arg0, arg1, arg2, arg3, arg4, arg5)
@@ -173,7 +174,7 @@ func (m *MockGithubRepositoriesService) UploadReleaseAsset(arg0 context.Context,
 	return ret0, ret1, ret2
 }
 
-// UploadReleaseAsset indicates an expected call of UploadReleaseAsset
+// UploadReleaseAsset indicates an expected call of UploadReleaseAsset.
 func (mr *MockGithubRepositoriesServiceMockRecorder) UploadReleaseAsset(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadReleaseAsset", reflect.TypeOf((*MockGithubRepositoriesService)(nil).UploadReleaseAsset), arg0, arg1, arg2, arg3, arg4, arg5)

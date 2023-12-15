@@ -6,35 +6,36 @@ package mocks
 
 import (
 	context "context"
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	github "github.com/google/go-github/github"
-	reflect "reflect"
 )
 
-// MockGithubGitService is a mock of GithubGitService interface
+// MockGithubGitService is a mock of GithubGitService interface.
 type MockGithubGitService struct {
 	ctrl     *gomock.Controller
 	recorder *MockGithubGitServiceMockRecorder
 }
 
-// MockGithubGitServiceMockRecorder is the mock recorder for MockGithubGitService
+// MockGithubGitServiceMockRecorder is the mock recorder for MockGithubGitService.
 type MockGithubGitServiceMockRecorder struct {
 	mock *MockGithubGitService
 }
 
-// NewMockGithubGitService creates a new mock instance
+// NewMockGithubGitService creates a new mock instance.
 func NewMockGithubGitService(ctrl *gomock.Controller) *MockGithubGitService {
 	mock := &MockGithubGitService{ctrl: ctrl}
 	mock.recorder = &MockGithubGitServiceMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockGithubGitService) EXPECT() *MockGithubGitServiceMockRecorder {
 	return m.recorder
 }
 
-// CreateRef mocks base method
+// CreateRef mocks base method.
 func (m *MockGithubGitService) CreateRef(arg0 context.Context, arg1, arg2 string, arg3 *github.Reference) (*github.Reference, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateRef", arg0, arg1, arg2, arg3)
@@ -44,13 +45,13 @@ func (m *MockGithubGitService) CreateRef(arg0 context.Context, arg1, arg2 string
 	return ret0, ret1, ret2
 }
 
-// CreateRef indicates an expected call of CreateRef
+// CreateRef indicates an expected call of CreateRef.
 func (mr *MockGithubGitServiceMockRecorder) CreateRef(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateRef", reflect.TypeOf((*MockGithubGitService)(nil).CreateRef), arg0, arg1, arg2, arg3)
 }
 
-// CreateTag mocks base method
+// CreateTag mocks base method.
 func (m *MockGithubGitService) CreateTag(arg0 context.Context, arg1, arg2 string, arg3 *github.Tag) (*github.Tag, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateTag", arg0, arg1, arg2, arg3)
@@ -60,13 +61,13 @@ func (m *MockGithubGitService) CreateTag(arg0 context.Context, arg1, arg2 string
 	return ret0, ret1, ret2
 }
 
-// CreateTag indicates an expected call of CreateTag
+// CreateTag indicates an expected call of CreateTag.
 func (mr *MockGithubGitServiceMockRecorder) CreateTag(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTag", reflect.TypeOf((*MockGithubGitService)(nil).CreateTag), arg0, arg1, arg2, arg3)
 }
 
-// GetRef mocks base method
+// GetRef mocks base method.
 func (m *MockGithubGitService) GetRef(arg0 context.Context, arg1, arg2, arg3 string) (*github.Reference, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRef", arg0, arg1, arg2, arg3)
@@ -76,13 +77,13 @@ func (m *MockGithubGitService) GetRef(arg0 context.Context, arg1, arg2, arg3 str
 	return ret0, ret1, ret2
 }
 
-// GetRef indicates an expected call of GetRef
+// GetRef indicates an expected call of GetRef.
 func (mr *MockGithubGitServiceMockRecorder) GetRef(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRef", reflect.TypeOf((*MockGithubGitService)(nil).GetRef), arg0, arg1, arg2, arg3)
 }
 
-// GetRefs mocks base method
+// GetRefs mocks base method.
 func (m *MockGithubGitService) GetRefs(arg0 context.Context, arg1, arg2, arg3 string) ([]*github.Reference, *github.Response, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRefs", arg0, arg1, arg2, arg3)
@@ -92,7 +93,7 @@ func (m *MockGithubGitService) GetRefs(arg0 context.Context, arg1, arg2, arg3 st
 	return ret0, ret1, ret2
 }
 
-// GetRefs indicates an expected call of GetRefs
+// GetRefs indicates an expected call of GetRefs.
 func (mr *MockGithubGitServiceMockRecorder) GetRefs(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRefs", reflect.TypeOf((*MockGithubGitService)(nil).GetRefs), arg0, arg1, arg2, arg3)
