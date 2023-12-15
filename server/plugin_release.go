@@ -24,6 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/eugenmayer/go-sshclient/sshwrapper"
 	"github.com/google/go-github/github"
+	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/pkg/errors"
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/openpgp"
@@ -400,26 +401,13 @@ func verifySignatures(pluginFilePaths []string) error {
 // createPlatformPlugins splits plugin tar into platform specific plugin tars.
 // Returns paths to platform plugin tars if successful, or an error otherwise.
 func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder string) ([]string, error) {
-	expectedPlatformBinaries := map[string]string{
-		"osx-amd64":     "plugin-darwin-amd64",
-		"windows-amd64": "plugin-windows-amd64.exe",
-		"linux-amd64":   "plugin-linux-amd64",
-	}
-
-	// If a plugin has special needs (e.g., it doesn't build for specific platforms), add that here:
-	if repositoryName == "mattermost-plugin-calls" {
-		expectedPlatformBinaries = map[string]string{
-			"linux-amd64":   "plugin-linux-amd64",
-			"freebsd-amd64": "plugin-freebsd-amd64",
-		}
-	}
-
-	if err := hasExpectedPlatformBinaries(pluginFilePath, expectedPlatformBinaries); err != nil {
+	platformBinaries, err := findPlatformBinaries(pluginFilePath)
+	if err != nil {
 		return nil, err
 	}
 
 	var result []string
-	for platform, binary := range expectedPlatformBinaries {
+	for platform, binary := range platformBinaries {
 		platformTarPath := filepath.Join(pluginFolder, fmt.Sprintf("%v-%v-%v.tar.gz", repositoryName, tag, platform))
 		err := createPlatformPlugin(pluginFilePath, binary, platformTarPath)
 		if err != nil {
@@ -431,9 +419,9 @@ func createPlatformPlugins(repositoryName, tag, pluginFilePath, pluginFolder str
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to check files in archive %s,", platformTarPath)
 		}
-		if len(found) != 1 || found[0] != expectedPlatformBinaries[platform] {
+		if len(found) != 1 || found[0] != platformBinaries[platform] {
 			return nil, errors.Errorf("found wrong platform binary in %s, expected %s, but found %v",
-				platformTarPath, expectedPlatformBinaries[platform], found)
+				platformTarPath, platformBinaries[platform], found)
 		}
 
 		result = append(result, platformTarPath)
@@ -763,53 +751,57 @@ func getPluginSigningSftpClient(cfg *MatterbuildConfig) (*sftp.Client, error) {
 	return sftp, nil
 }
 
-// hasExpectedPlatformBinaries verifies if plugin tar contains at least the binaries expected
-func hasExpectedPlatformBinaries(filePath string, expectedBinaries map[string]string) error {
-	f, err := os.Open(filePath)
+// findPlatformBinaries finds the binaries for which the plugin was compiled
+func findPlatformBinaries(filePath string) (map[string]string, error) {
+	tmpDir, err := os.MkdirTemp("", "platform-plugin-*")
 	if err != nil {
-		return errors.Wrap(err, "failed to setup sftp client")
+		return nil, errors.Wrap(err, "failed to create temporary directory")
 	}
-	defer f.Close()
+	defer os.RemoveAll(tmpDir) // clean up
 
-	gzf, err := gzip.NewReader(f)
+	err = unpackPlugin(filePath, tmpDir)
 	if err != nil {
-		return errors.Wrap(err, "failed to read gzip data")
+		return nil, errors.Wrap(err, "failed to unpack plugin")
 	}
 
-	foundBinaries := make(map[string]bool, len(expectedBinaries))
-	for _, v := range expectedBinaries {
-		foundBinaries[v] = false
+	dir, err := os.ReadDir(tmpDir)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read tmp dir")
 	}
 
-	tarReader := tar.NewReader(gzf)
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
+	// If the root of the plugin bundle consists of exactly one directory, assume the plugin
+	// is contained therein. Otherwise the root directory is expected to contain the plugin.
+	if len(dir) == 1 && dir[0].IsDir() {
+		tmpDir = filepath.Join(tmpDir, dir[0].Name())
+	}
+
+	manifest, _, err := model.FindManifest(tmpDir)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to find manifest")
+	}
+
+	// We should probably support this as a platform-agnostic plugin, but leaving that existing
+	// gap to a future reader.
+	if manifest.Server == nil {
+		return nil, fmt.Errorf("no server defined")
+	}
+
+	if len(manifest.Server.Executables) == 0 {
+		if len(manifest.Server.Executable) > 0 {
+			return nil, fmt.Errorf("singular executable without defined platform not supported")
 		}
-		if err != nil {
-			return errors.Wrap(err, "failed to read tar data")
-		}
 
-		name := header.FileInfo().Name()
-
-		if header.Typeflag == tar.TypeReg {
-			foundBinaries[name] = true
-		}
+		return nil, fmt.Errorf("no executables defined")
 	}
 
-	var missingBinaries []string
-	for k, v := range foundBinaries {
-		if !v {
-			missingBinaries = append(missingBinaries, k)
-		}
+	// Executables is a map from platform to the path within the plugin.tar.gz, but the caller
+	// wants a map from platform to the filename for later globbing.
+	foundBinaries := make(map[string]string, len(manifest.Server.Executables))
+	for platform, pathToBinary := range manifest.Server.Executables {
+		foundBinaries[platform] = filepath.Base(pathToBinary)
 	}
 
-	if len(missingBinaries) > 0 {
-		return errors.Errorf("missing the following binaries: %v", missingBinaries)
-	}
-
-	return nil
+	return foundBinaries, nil
 }
 
 // archiveContains returns filenames that matches a given string.
