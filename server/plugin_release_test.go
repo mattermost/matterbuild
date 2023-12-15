@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,7 +23,7 @@ import (
 
 func TestCreatePlatformPlugins(t *testing.T) {
 	t.Run("invalid plugin file", func(t *testing.T) {
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -33,7 +33,7 @@ func TestCreatePlatformPlugins(t *testing.T) {
 	})
 
 	t.Run("plugin tar has all platform binaries", func(t *testing.T) {
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -62,7 +62,7 @@ func TestCreatePlatformPlugins(t *testing.T) {
 	})
 
 	t.Run("linux plugin tar doesn't have all platform binaries", func(t *testing.T) {
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -77,7 +77,7 @@ func TestCreatePlatformPlugins(t *testing.T) {
 	})
 
 	t.Run("plugin tar only has amd64 binaries (missing arm64)", func(t *testing.T) {
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -106,7 +106,7 @@ func TestCreatePlatformPlugins(t *testing.T) {
 	})
 
 	t.Run("calls plugin tar has only two platform binaries", func(t *testing.T) {
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -446,7 +446,7 @@ func TestDownloadAsset(t *testing.T) {
 		}
 		repoMock.EXPECT().DownloadReleaseAsset(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(asset.GetID())).Return(nil, "", nil)
 
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -471,10 +471,10 @@ func TestDownloadAsset(t *testing.T) {
 			Name: github.String("test_asset"),
 		}
 		expectedData := "hello world"
-		rc := ioutil.NopCloser(bytes.NewReader([]byte(expectedData)))
+		rc := io.NopCloser(bytes.NewReader([]byte(expectedData)))
 		repoMock.EXPECT().DownloadReleaseAsset(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(asset.GetID())).Return(rc, "", nil)
 
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -482,7 +482,7 @@ func TestDownloadAsset(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, filepath.Join(tmpFolder, "test_asset"), assetFilePath)
 
-		data, err := ioutil.ReadFile(assetFilePath)
+		data, err := os.ReadFile(assetFilePath)
 		require.NoError(t, err)
 		require.Equal(t, expectedData, string(data))
 	})

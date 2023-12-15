@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os/exec"
 	"time"
 
@@ -69,7 +68,7 @@ func RunCmds(cmds []*exec.Cmd) error {
 				return errors.New("cmd stderr is not *bufio.ReadWriter")
 			}
 
-			errData, otherErr := ioutil.ReadAll(readWriter)
+			errData, otherErr := io.ReadAll(readWriter)
 			if otherErr != nil {
 				return errors.Wrapf(otherErr, "failed to read stdErr from cmd")
 			}

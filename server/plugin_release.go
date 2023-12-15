@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -62,7 +61,7 @@ func cutPlugin(ctx context.Context, cfg *MatterbuildConfig, client *GithubClient
 	}
 
 	// Download plugin tar into temp folder
-	tmpFolder, err := ioutil.TempDir("", pluginAsset.GetName())
+	tmpFolder, err := os.MkdirTemp("", pluginAsset.GetName())
 	if err != nil {
 		return errors.Wrap(err, "failed to create temp dir")
 	}
@@ -454,7 +453,7 @@ func createPlatformPlugin(pluginFilePath, binary, platformTarPath string) error 
 		tarCmdStr = "gtar"
 	}
 
-	dir, err := ioutil.TempDir("", "platform-plugin-*")
+	dir, err := os.MkdirTemp("", "platform-plugin-*")
 	if err != nil {
 		return errors.Wrap(err, "failed to create temporary directory")
 	}
@@ -835,7 +834,7 @@ func archiveContains(filePath string, contains string) ([]string, error) {
 
 // getSSHClientConfig Loads a private and public key from "path" and returns a SSH ClientConfig to authenticate with the server.
 func getSSHClientConfig(username, path, certPath, hostPublicKey string) (*ssh.ClientConfig, error) {
-	privateKey, err := ioutil.ReadFile(path)
+	privateKey, err := os.ReadFile(path)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to read key path")
 	}
@@ -848,7 +847,7 @@ func getSSHClientConfig(username, path, certPath, hostPublicKey string) (*ssh.Cl
 	// Load the certificate if present
 	if certPath != "" {
 		var cert []byte
-		cert, err = ioutil.ReadFile(certPath)
+		cert, err = os.ReadFile(certPath)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to read cert path")
 		}

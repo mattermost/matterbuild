@@ -9,8 +9,8 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -640,7 +640,7 @@ func checkBranchTranslationCmdF(args []string, w http.ResponseWriter, slashComma
 	LogInfo("Artifact - " + artifacts[0].FileName)
 
 	file := fmt.Sprintf("/tmp/%v", artifacts[0].FileName)
-	dat, errFile := ioutil.ReadFile(file)
+	dat, errFile := os.ReadFile(file)
 	if errFile != nil {
 		LogError("Error reading the file. err= " + errFile.Error())
 	}

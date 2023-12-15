@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -47,7 +47,7 @@ func post(url string, formData url.Values) (map[string]interface{}, error) {
 		return nil, err
 	}
 	defer response.Body.Close()
-	responseData, err := ioutil.ReadAll(response.Body)
+	responseData, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
