@@ -1,4 +1,5 @@
 matterbuild
+bin/
 
 #Helm
 !helm/*
