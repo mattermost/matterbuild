@@ -17,11 +17,21 @@ LDFLAGS +="
 
 GO ?= $(shell command -v go 2> /dev/null)
 
+# We need to export GOBIN to allow it to be set
+# for processes spawned from the Makefile
+export GOBIN ?= $(PWD)/bin
+
 PACKAGES=$(shell go list ./...)
 
 ## Checks the code style, tests and builds.
 .PHONY: all
 all: check-style test build
+
+## Install go tools
+install-go-tools:
+	@echo Installing go tools
+	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.1
+	$(GO) install github.com/golang/mock/mockgen@v1.6.0
 
 ## Checks code style.
 .PHONY: check-style
@@ -30,15 +40,9 @@ check-style: golangci-lint
 
 ## Run golangci-lint on codebase.
 .PHONY: golangci-lint
-golangci-lint:
-	@if ! [ -x "$$(command -v golangci-lint)" ]; then \
-		echo "golangci-lint is not installed. Please see https://github.com/golangci/golangci-lint#install for installation instructions."; \
-		exit 1; \
-	fi; \
-
-
+golangci-lint: install-go-tools
 	@echo Running golangci-lint
-	golangci-lint run ./...
+	$(GOBIN)/golangci-lint run ./...
 
 ## Cleans workspace
 .PHONY: clean
@@ -115,11 +119,10 @@ push:
 
 ## Generate mocks.
 .PHONY: mocks
-mocks:
-	go install github.com/golang/mock/mockgen
-	mockgen -package mocks -destination server/mocks/mock_github_repo.go github.com/mattermost/matterbuild/server GithubRepositoriesService
-	mockgen -package mocks -destination server/mocks/mock_github_search.go github.com/mattermost/matterbuild/server GithubSearchService
-	mockgen -package mocks -destination server/mocks/mock_github_git.go github.com/mattermost/matterbuild/server GithubGitService
+mocks: install-go-tools
+	$(GOBIN)/mockgen -package mocks -destination server/mocks/mock_github_repo.go github.com/mattermost/matterbuild/server GithubRepositoriesService
+	$(GOBIN)/mockgen -package mocks -destination server/mocks/mock_github_search.go github.com/mattermost/matterbuild/server GithubSearchService
+	$(GOBIN)/mockgen -package mocks -destination server/mocks/mock_github_git.go github.com/mattermost/matterbuild/server GithubGitService
 
 #####################
 ## Release targets ##

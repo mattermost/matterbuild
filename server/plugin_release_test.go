@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -23,7 +23,7 @@ import (
 
 func TestCreatePlatformPlugins(t *testing.T) {
 	t.Run("invalid plugin file", func(t *testing.T) {
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -33,14 +33,14 @@ func TestCreatePlatformPlugins(t *testing.T) {
 	})
 
 	t.Run("plugin tar has all platform binaries", func(t *testing.T) {
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
 		path := filepath.Join("test", "mattermost-plugin-demo-v0.4.1.tar.gz")
 
 		expectedFiles := map[string]string{
-			"myrepo-mytag-osx-amd64.tar.gz":     "plugin-darwin-amd64",
+			"myrepo-mytag-darwin-amd64.tar.gz":  "plugin-darwin-amd64",
 			"myrepo-mytag-windows-amd64.tar.gz": "plugin-windows-amd64.exe",
 			"myrepo-mytag-linux-amd64.tar.gz":   "plugin-linux-amd64",
 		}
@@ -62,29 +62,41 @@ func TestCreatePlatformPlugins(t *testing.T) {
 	})
 
 	t.Run("linux plugin tar doesn't have all platform binaries", func(t *testing.T) {
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
 		path := filepath.Join("test", "mattermost-plugin-demo-v0.4.1-linux-amd64.tar.gz")
 
+		expectedFiles := map[string]string{
+			"myrepo-mytag-linux-amd64.tar.gz": "plugin-linux-amd64",
+		}
 		platformPluginFilePaths, err := createPlatformPlugins("myrepo", "mytag", path, tmpFolder)
-		require.Error(t, err)
-		require.NotContains(t, err.Error(), "plugin-linux-amd64")
-		require.Contains(t, err.Error(), "plugin-windows-amd64")
-		require.Contains(t, err.Error(), "plugin-darwin-amd64")
-		require.Nil(t, platformPluginFilePaths)
+		require.NoError(t, err)
+		require.Len(t, platformPluginFilePaths, 1)
+
+		for _, filePath := range platformPluginFilePaths {
+			base := filepath.Base(filePath)
+			require.Contains(t, expectedFiles, base)
+
+			found, err := archiveContains(filePath, "plugin-")
+			require.NoError(t, err)
+			require.Len(t, found, 1)
+			require.Equal(t, expectedFiles[base], found[0])
+			delete(expectedFiles, base)
+		}
+		require.Len(t, expectedFiles, 0)
 	})
 
 	t.Run("plugin tar only has amd64 binaries (missing arm64)", func(t *testing.T) {
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
 		path := filepath.Join("test", "mattermost-plugin-demo-v0.4.1-amd64.tar.gz")
 
 		expectedFiles := map[string]string{
-			"myrepo-mytag-osx-amd64.tar.gz":     "plugin-darwin-amd64",
+			"myrepo-mytag-darwin-amd64.tar.gz":  "plugin-darwin-amd64",
 			"myrepo-mytag-windows-amd64.tar.gz": "plugin-windows-amd64.exe",
 			"myrepo-mytag-linux-amd64.tar.gz":   "plugin-linux-amd64",
 		}
@@ -106,7 +118,7 @@ func TestCreatePlatformPlugins(t *testing.T) {
 	})
 
 	t.Run("calls plugin tar has only two platform binaries", func(t *testing.T) {
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -173,29 +185,29 @@ func TestArchiveContains(t *testing.T) {
 	})
 }
 
-func TestHasAllPlatformBinaries(t *testing.T) {
-	expectedPlatformBinaries := map[string]string{
-		"osx-amd64":     "plugin-darwin-amd64",
-		"windows-amd64": "plugin-windows-amd64.exe",
-		"linux-amd64":   "plugin-linux-amd64",
-	}
-
+func TestFindlatformBinaries(t *testing.T) {
 	t.Run("invalid archive file", func(t *testing.T) {
-		err := hasExpectedPlatformBinaries("invalid", expectedPlatformBinaries)
+		platformBinaries, err := findPlatformBinaries("invalid")
 		require.Error(t, err)
-		require.Contains(t, err.Error(), "no such file or directory")
+		require.Empty(t, platformBinaries)
 	})
 
 	t.Run("missing two platform binaries", func(t *testing.T) {
-		err := hasExpectedPlatformBinaries(filepath.Join("test", "mattermost-plugin-demo-v0.4.1-linux-amd64.tar.gz"), expectedPlatformBinaries)
-		require.Error(t, err)
-		require.Contains(t, err.Error(), "plugin-darwin-amd64")
-		require.Contains(t, err.Error(), "plugin-windows-amd64.exe")
+		platformBinaries, err := findPlatformBinaries(filepath.Join("test", "mattermost-plugin-demo-v0.4.1-linux-amd64.tar.gz"))
+		require.NoError(t, err)
+		require.Equal(t, map[string]string{
+			"linux-amd64": "plugin-linux-amd64",
+		}, platformBinaries)
 	})
 
 	t.Run("contains all platform binaries", func(t *testing.T) {
-		err := hasExpectedPlatformBinaries(filepath.Join("test", "mattermost-plugin-demo-v0.4.1.tar.gz"), expectedPlatformBinaries)
+		platformBinaries, err := findPlatformBinaries(filepath.Join("test", "mattermost-plugin-demo-v0.4.1.tar.gz"))
 		require.NoError(t, err)
+		require.Equal(t, map[string]string{
+			"darwin-amd64":  "plugin-darwin-amd64",
+			"windows-amd64": "plugin-windows-amd64.exe",
+			"linux-amd64":   "plugin-linux-amd64",
+		}, platformBinaries)
 	})
 }
 
@@ -366,24 +378,6 @@ func TestCreateTag(t *testing.T) {
 
 		gitMock.EXPECT().GetRefs(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(fmt.Sprintf("tags/%s", tag))).Return(refs, nil, nil)
 
-		githubObj := &github.GitObject{
-			SHA:  github.String(commitSHA),
-			Type: github.String("commit"),
-		}
-		githubTag := &github.Tag{
-			Tag:     github.String(tag),
-			Message: github.String(tag),
-			Object:  githubObj,
-		}
-		gitMock.EXPECT().CreateTag(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(githubTag)).Return(nil, nil, nil)
-		repoMock.EXPECT().GetCommit(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(commitSHA)).Return(nil, nil, nil)
-
-		refTag := &github.Reference{
-			Ref:    github.String(fmt.Sprintf("tags/%s", tag)),
-			Object: githubObj,
-		}
-		gitMock.EXPECT().CreateRef(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(refTag)).Return(nil, nil, nil)
-
 		err := createTag(ctx, testClient, owner, repoName, tag, commitSHA)
 		require.Error(t, err)
 		require.True(t, errors.Is(err, ErrTagExists))
@@ -446,7 +440,7 @@ func TestDownloadAsset(t *testing.T) {
 		}
 		repoMock.EXPECT().DownloadReleaseAsset(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(asset.GetID())).Return(nil, "", nil)
 
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -471,10 +465,10 @@ func TestDownloadAsset(t *testing.T) {
 			Name: github.String("test_asset"),
 		}
 		expectedData := "hello world"
-		rc := ioutil.NopCloser(bytes.NewReader([]byte(expectedData)))
+		rc := io.NopCloser(bytes.NewReader([]byte(expectedData)))
 		repoMock.EXPECT().DownloadReleaseAsset(gomock.Eq(ctx), gomock.Eq(owner), gomock.Eq(repoName), gomock.Eq(asset.GetID())).Return(rc, "", nil)
 
-		tmpFolder, err := ioutil.TempDir("", "test")
+		tmpFolder, err := os.MkdirTemp("", "test")
 		require.NoError(t, err)
 		defer os.RemoveAll(tmpFolder)
 
@@ -482,7 +476,7 @@ func TestDownloadAsset(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, filepath.Join(tmpFolder, "test_asset"), assetFilePath)
 
-		data, err := ioutil.ReadFile(assetFilePath)
+		data, err := os.ReadFile(assetFilePath)
 		require.NoError(t, err)
 		require.Equal(t, expectedData, string(data))
 	})

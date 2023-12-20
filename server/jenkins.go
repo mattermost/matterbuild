@@ -4,7 +4,7 @@
 package server
 
 import (
-	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -23,7 +23,7 @@ func getJenkins(jenkinsUser, jenkinsToken, jenkinsURL string) (*gojenkins.Jenkin
 	jenkins := gojenkins.CreateJenkins(jenkinsURL, jenkinsUser, jenkinsToken)
 	jenkins.Requester.SslVerify = config.SSLVerify
 	if config.CACrtPath {
-		caCert, err := ioutil.ReadFile("/app/ssl/ca.crt")
+		caCert, err := os.ReadFile("/app/ssl/ca.crt")
 		if err != nil {
 			return nil, NewError("Unable to find CA certificate for jenkins!", err)
 		}
