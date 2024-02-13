@@ -11,7 +11,7 @@ RUN CGO_ENABLED=0 make build
 
 ################
 
-FROM ubuntu:jammy-20230916@sha256:b4b521bfcec90b11d2869e00fe1f2380c21cbfcd799ee35df8bd7ac09e6f63ea
+FROM ubuntu:noble-20240127.1@sha256:bce129bec07bab56ada102d312ebcfe70463885bdf68fb32182974bd994816e0
 
 RUN export DEBIAN_FRONTEND="noninteractive" && \
     apt-get update && \
